@@ -13,9 +13,40 @@
 4. [Set your signing team](https://help.apple.com/xcode/mac/current/#/dev23aab79b4) for both targets (the Vimkit app product and its Vimkit Extension target).
 5. Run the project (<kbd>⌘</kbd>+<kbd>R</kbd>), then enable Vimkit and grant website access in Safari's Extensions settings.
 
-Use `npm test` for JavaScript tests. Use the generated app for browser testing;
-the source `Vimkit Extension` directory is arranged for Xcode and is not an
-unpacked extension bundle.
+Use `npm test` for the Jest unit tests. Use the generated app for browser
+testing; the source `Vimkit Extension` directory is arranged for Xcode and is
+not an unpacked extension bundle.
+
+### End-to-end tests
+
+`npm run test:e2e` loads the real extension into Chromium with Playwright.
+Install the browser once with `npx playwright install chromium` — the cached
+build is pinned to the `@playwright/test` version, so an existing Chromium from
+another project may not satisfy it.
+
+`tests/e2e/fixtures.js` flattens `Vimkit Extension` into a temporary directory
+the way Xcode does, launches a persistent context with the extension loaded, and
+serves each fixture page from localhost (content scripts do not run on `data:`
+URLs). The `vimkit` fixture hands a test the page, the service worker, and
+`setSettings()` for overriding the defaults the way the options page would.
+
+These tests exist because jsdom has no layout and no real key delivery, which
+hides an entire class of bug — window timers rejecting a foreign `this`, the
+find bar losing keystrokes once the selection moves, and anything that reads
+`scrollHeight` or `getBoundingClientRect`. Two things to know when writing one:
+
+- **Never focus an `<input>` to set up a keyboard test.** That puts Vimkit into
+  insert mode and the keystrokes go to the field instead of the extension. Use a
+  `tabindex="0"` div when you need a focused element.
+- Playwright's `keyboard.type("G")` does not hold Shift. Press `Shift+G`.
+
+Chromium is a real engine but it is not Safari or Orion, so these tests
+supplement the manual pass below rather than replacing it.
+
+These run locally only, by choice — CI runs `npm test` alone. The specs wait on
+fixed timeouts rather than polling, which is reliable on a developer machine but
+would flake on a loaded shared runner, and a flaky required check is worse than
+no check. Harden the waits before putting this in CI.
 
 Before release, test both Safari and Orion manually. Exercise normal pages and
 SPAs, editable fields and insert mode, find wrapping, link copying and queued

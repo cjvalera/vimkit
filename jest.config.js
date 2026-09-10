@@ -1,5 +1,7 @@
 module.exports = {
   testEnvironment: "jsdom",
+  // tests/e2e is Playwright, not Jest; both use *.spec.js.
+  testPathIgnorePatterns: ["/node_modules/", "/tests/e2e/"],
   setupFiles: [
     "./Vimkit Extension/js/mocks.js",
     "./Vimkit Extension/js/lib/svim-scripts.js",
