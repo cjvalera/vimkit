@@ -6,10 +6,28 @@
 
 let animationFrame = null;
 
-function customScrollBy(x, y) {
+// `target` is the nested scroller resolved at keypress time, or null/undefined
+// for the document.
+function currentSettings() {
+    if (typeof settings !== "undefined" && settings) return settings;
+    return (typeof globalThis !== "undefined" && globalThis.settings) || undefined;
+}
+
+function customScrollBy(x, y, target) {
+    const active = currentSettings();
+
+    function scrollBy(dx, dy) {
+        if (target) {
+            if (dx) target.scrollLeft += dx;
+            if (dy) target.scrollTop += dy;
+            return;
+        }
+        window.scrollBy(dx, dy);
+    }
+
     // If smooth scroll is off then use regular scroll
-    if (settings == undefined || settings.smoothScroll === undefined || !settings.smoothScroll) {
-        window.scrollBy(x, y);
+    if (active == undefined || active.smoothScroll === undefined || !active.smoothScroll) {
+        scrollBy(x, y);
         return;
     }
     window.cancelAnimationFrame(animationFrame);
@@ -25,23 +43,28 @@ function customScrollBy(x, y) {
 
     // Animate the scroll
     function animLoop() {
-        const toScroll = Math.round(easeOutExpo(i, 0, y, settings.scrollDuration) - delta);
+        const toScroll = Math.round(easeOutExpo(i, 0, y, active.scrollDuration) - delta);
         if (toScroll !== 0) {
             if (y) {
-                window.scrollBy(0, toScroll);
+                scrollBy(0, toScroll);
             } else {
-                window.scrollBy(toScroll, 0);
+                scrollBy(toScroll, 0);
             }
         }
 
-        if (i < this.settings.scrollDuration) {
+        if (i < active.scrollDuration) {
             animationFrame = window.requestAnimationFrame(animLoop);
         }
 
-        delta = easeOutExpo(i, 0, (x || y), settings.scrollDuration);
+        delta = easeOutExpo(i, 0, (x || y), active.scrollDuration);
         i += 1;
     }
 
     // Start scroll
     animLoop();
+}
+
+if (typeof module !== "undefined") {
+    module.exports = { customScrollBy: customScrollBy };
+    global.customScrollBy = customScrollBy;
 }

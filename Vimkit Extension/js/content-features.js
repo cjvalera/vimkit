@@ -64,6 +64,55 @@ var VimkitContentFeatures = (function () {
         return matches;
     }
 
+    // Modern app shells (Gmail, Slack, Linear) put the real scroller in a nested
+    // element, so a scroll command has to find the element under the keypress
+    // rather than assume the document scrolls.
+    function scrollableOverflow(overflow) {
+        return overflow === "auto" || overflow === "scroll" || overflow === "overlay";
+    }
+
+    function scrollExtent(element, axis) {
+        return axis === "x"
+            ? element.scrollWidth - element.clientWidth
+            : element.scrollHeight - element.clientHeight;
+    }
+
+    function scrollPosition(element, axis) {
+        return axis === "x" ? element.scrollLeft : element.scrollTop;
+    }
+
+    function canScroll(element, axis, delta, windowObject) {
+        if (!element || element.nodeType !== 1) return false;
+        var style = windowObject.getComputedStyle(element);
+        if (!style) return false;
+        if (!scrollableOverflow(axis === "x" ? style.overflowX : style.overflowY)) return false;
+        var extent = scrollExtent(element, axis);
+        if (extent <= 0) return false;
+        // A scroller already pinned at the requested end should not swallow the
+        // key — let the walk continue to an ancestor that can still move.
+        var position = scrollPosition(element, axis);
+        return delta < 0 ? position > 0 : position < extent;
+    }
+
+    function findScrollTargetFrom(element, axis, delta, documentObject, windowObject) {
+        var node = element;
+        while (node && node.nodeType === 1 && node !== documentObject.body && node !== documentObject.documentElement) {
+            if (canScroll(node, axis, delta, windowObject)) return node;
+            node = node.parentElement;
+        }
+        return null;
+    }
+
+    function findScrollTarget(axis, delta, documentObject, windowObject) {
+        var doc = documentObject || document;
+        var win = windowObject || window;
+        var fromFocus = findScrollTargetFrom(doc.activeElement, axis, delta, doc, win);
+        if (fromFocus) return fromFocus;
+        if (typeof doc.elementFromPoint !== "function") return null;
+        var centre = doc.elementFromPoint(Math.floor(win.innerWidth / 2), Math.floor(win.innerHeight / 2));
+        return findScrollTargetFrom(centre, axis, delta, doc, win);
+    }
+
     function parentUrl(value, toOrigin) {
         var url = new URL(value);
         if (toOrigin) return url.origin + "/";
@@ -485,6 +534,7 @@ var VimkitContentFeatures = (function () {
         FindMode: FindMode,
         OverlayManager: OverlayManager,
         findPaginationLink: findPaginationLink,
+        findScrollTarget: findScrollTarget,
         TabPicker: TabPicker,
         isExcludedTextNode: isExcludedTextNode,
         isVisibleTextNode: isVisibleTextNode,

@@ -115,6 +115,14 @@ These bindings are the ones set by default, however you are able to change them 
     gU      Go to the site's root
     ?       Show Vimkit help
 
+Scroll commands act on whatever is actually scrolling. Vimkit walks up from the
+focused element — or from the element in the middle of the viewport — to the
+nearest ancestor that can still scroll in the requested direction, so
+<kbd>j</kbd> and <kbd>k</kbd> work inside the nested panes that Gmail, Slack and
+similar app shells use. When nothing nested can scroll, the page scrolls.
+<kbd>u</kbd> and <kbd>d</kbd> move half of that pane's height, and <kbd>gg</kbd>
+/ <kbd>G</kbd> jump to its ends.
+
 #### Page/Tab navigation
     H       History back
     L       History forward

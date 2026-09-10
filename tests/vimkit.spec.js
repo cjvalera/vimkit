@@ -239,3 +239,60 @@ describe('insert mode binding', () => {
         expect(scrollDown.mock.calls.length).to.equal(1);
     });
 });
+
+describe('scrolling a nested element', () => {
+    function makeScroller(element, { extent = 500, position = 0 } = {}) {
+        element.style.overflowY = 'auto';
+        Object.defineProperty(element, 'clientHeight', { value: 100, configurable: true });
+        Object.defineProperty(element, 'scrollHeight', { value: 100 + extent, configurable: true });
+        element.scrollTop = position;
+        return element;
+    }
+
+    beforeEach(() => {
+        document.body.innerHTML = '';
+        document.elementFromPoint = () => null;
+        const settings = JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings));
+        settings.smoothScroll = false;
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(settings);
+    });
+
+    it('scrolls the app shell pane rather than the document', () => {
+        document.body.innerHTML = '<div id="pane"><input id="field"></div>';
+        const pane = makeScroller(document.getElementById('pane'));
+        document.getElementById('field').focus();
+
+        // scrollSize is 150 by default, so a count of 2 moves 300px.
+        window.VimkitInjected.actionMap.scrollDown({ count: 2 });
+        expect(pane.scrollTop).to.equal(300);
+    });
+
+    it('measures a half page against the pane, not the window', () => {
+        document.body.innerHTML = '<div id="pane"><input id="field"></div>';
+        const pane = makeScroller(document.getElementById('pane'));
+        document.getElementById('field').focus();
+
+        window.VimkitInjected.actionMap.scrollDownHalfPage({ count: 1 });
+        expect(pane.scrollTop).to.equal(50);
+    });
+
+    it('jumps to the end of the pane', () => {
+        document.body.innerHTML = '<div id="pane"><input id="field"></div>';
+        const pane = makeScroller(document.getElementById('pane'));
+        document.getElementById('field').focus();
+
+        window.VimkitInjected.actionMap.goToPageBottom({ count: 1 });
+        expect(pane.scrollTop).to.equal(600);
+    });
+
+    it('leaves the document scroll to the window when no pane scrolls', () => {
+        document.body.innerHTML = '<div id="plain"><input id="field"></div>';
+        document.getElementById('field').focus();
+        const scrollBy = jest.spyOn(window, 'scrollBy').mockImplementation(() => {});
+
+        window.VimkitInjected.actionMap.scrollDown({ count: 1 });
+        expect(scrollBy.mock.calls.length).to.equal(1);
+        scrollBy.mockRestore();
+    });
+});

@@ -3,6 +3,7 @@ const {
     FindMode,
     OverlayManager,
     TabPicker,
+    findScrollTarget,
     parentUrl,
     visibleTextMatches
 } = require("../Vimkit Extension/js/content-features.js");
@@ -187,5 +188,66 @@ describe("pagination links", () => {
         expect(findPaginationLink(document, "previous").id).toBe("older");
         document.body.innerHTML = `<a href="/x">Unrelated</a>`;
         expect(findPaginationLink(document, "next")).toBeNull();
+    });
+
+    // jsdom has no layout, so the scroll geometry the resolver reads has to be
+    // stubbed the way a real engine would report it.
+    function makeScroller(element, { axis = "y", extent = 500, position = 0, overflow = "auto" } = {}) {
+        element.style[axis === "x" ? "overflowX" : "overflowY"] = overflow;
+        const client = 100;
+        Object.defineProperty(element, axis === "x" ? "clientWidth" : "clientHeight", { value: client, configurable: true });
+        Object.defineProperty(element, axis === "x" ? "scrollWidth" : "scrollHeight", { value: client + extent, configurable: true });
+        element[axis === "x" ? "scrollLeft" : "scrollTop"] = position;
+        return element;
+    }
+
+    describe("findScrollTarget", () => {
+        beforeEach(() => {
+            document.elementFromPoint = () => null;
+        });
+
+        it("returns the nearest scrollable ancestor of the focused element", () => {
+            document.body.innerHTML = `<div id="pane"><div id="inner"><input id="field"></div></div>`;
+            const pane = makeScroller(document.getElementById("pane"));
+            document.getElementById("field").focus();
+            expect(findScrollTarget("y", 1, document, window)).toBe(pane);
+        });
+
+        it("falls back to the element under the viewport centre when nothing is focused", () => {
+            document.body.innerHTML = `<div id="pane"><span id="text">hi</span></div>`;
+            const pane = makeScroller(document.getElementById("pane"));
+            document.elementFromPoint = () => document.getElementById("text");
+            expect(findScrollTarget("y", 1, document, window)).toBe(pane);
+        });
+
+        it("falls back to the document when no ancestor scrolls", () => {
+            document.body.innerHTML = `<div id="pane"><input id="field"></div>`;
+            document.getElementById("field").focus();
+            expect(findScrollTarget("y", 1, document, window)).toBe(null);
+        });
+
+        it("ignores an element that is overflowing but not scrollable", () => {
+            document.body.innerHTML = `<div id="pane"><input id="field"></div>`;
+            makeScroller(document.getElementById("pane"), { overflow: "hidden" });
+            document.getElementById("field").focus();
+            expect(findScrollTarget("y", 1, document, window)).toBe(null);
+        });
+
+        it("skips a scroller already pinned at the requested end", () => {
+            document.body.innerHTML = `<div id="outer"><div id="pane"><input id="field"></div></div>`;
+            const outer = makeScroller(document.getElementById("outer"), { position: 200 });
+            makeScroller(document.getElementById("pane"), { position: 500 });
+            document.getElementById("field").focus();
+            expect(findScrollTarget("y", 1, document, window)).toBe(outer);
+            expect(findScrollTarget("y", -1, document, window)).toBe(document.getElementById("pane"));
+        });
+
+        it("resolves each axis independently", () => {
+            document.body.innerHTML = `<div id="pane"><input id="field"></div>`;
+            const pane = makeScroller(document.getElementById("pane"), { axis: "x" });
+            document.getElementById("field").focus();
+            expect(findScrollTarget("x", 1, document, window)).toBe(pane);
+            expect(findScrollTarget("y", 1, document, window)).toBe(null);
+        });
     });
 });

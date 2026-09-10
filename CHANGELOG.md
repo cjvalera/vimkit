@@ -33,6 +33,10 @@ and link to that project's issue tracker; they are kept here for history.
 * Generate shortest prefix-free link hints, colour hints by element kind
   (link, control, text input), and add `yF`/`ym` to copy a link's text or a
   Markdown link.
+* Scroll the nested pane under the cursor or the focused element rather than
+  always the document, so `j`/`k`, `u`/`d` and `gg`/`G` work inside app shells
+  like Gmail and Slack. A pane already at the requested end hands the key to its
+  nearest scrollable ancestor.
 * Persist tab activation and a ten-item closed-tab cache using session storage
   when available, with local-storage fallback.
 * Ship the MIT notice and acknowledgments inside the app, and add in-app links

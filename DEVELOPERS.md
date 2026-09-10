@@ -53,9 +53,18 @@ page text and closed-tab restore uses a ten-item URL cache because Safari does
 not expose the equivalent native APIs. Restore recreates the URL near its old
 position, but cannot restore the tab's full back/forward history. If native tab
 duplication is unavailable, Vimkit recreates the current URL beside the tab.
-Tab movement,
-bookmark/history search, zoom commands, iframe coordination, and Shadow DOM
+Bookmark/history search, zoom commands, iframe coordination, and Shadow DOM
 link discovery remain outside the current milestone.
+
+### Manual verification
+
+Jest runs in jsdom, which has no layout and no real key delivery, so these
+behaviours have to be checked in Safari or Orion before a release:
+
+- **Nested-pane scrolling** — on Gmail, Slack or Linear, `j`/`k`, `u`/`d` and
+  `gg`/`G` must move the app's own scroller, not the document. A pane already at
+  its end should hand the key to the next scrollable ancestor. On an ordinary
+  long page the document must still scroll.
 
 ## Contributing
 

@@ -66,8 +66,26 @@ function reportRequest(request) {
     });
 }
 
+function scrollTargetFor(axis, delta) {
+    return VimkitContentFeatures.findScrollTarget(axis, delta, document, window);
+}
+
 function scrollByCount(x, y, meta) {
-    customScrollBy(x * meta.count, y * meta.count);
+    var axis = x ? "x" : "y";
+    customScrollBy(x * meta.count, y * meta.count, scrollTargetFor(axis, x || y));
+}
+
+// Half a page means half of whatever is actually scrolling, not half the window.
+function scrollHalfPage(sign, meta) {
+    var target = scrollTargetFor("y", sign);
+    var height = target ? target.clientHeight : window.innerHeight;
+    customScrollBy(0, sign * (height / 2) * meta.count, target);
+}
+
+function scrollToEnd(sign) {
+    var target = scrollTargetFor("y", sign);
+    var distance = target ? target.scrollHeight : document.body.scrollHeight;
+    customScrollBy(0, sign * distance, target);
 }
 
 function navigateUpUrl(toOrigin) {
@@ -155,10 +173,10 @@ var actionMap = {
     openTab: function () { reportRequest(extensionCommunicator.requestCreateTab(settings.openTabUrl)); },
     closeTab: function () { reportRequest(extensionCommunicator.requestCloseTab()); },
     duplicateTab: function () { reportRequest(extensionCommunicator.requestDuplicateTab()); },
-    scrollDownHalfPage: function (meta) { scrollByCount(0, window.innerHeight / 2, meta); },
-    scrollUpHalfPage: function (meta) { scrollByCount(0, window.innerHeight / -2, meta); },
-    goToPageBottom: function () { customScrollBy(0, document.body.scrollHeight); },
-    goToPageTop: function () { customScrollBy(0, -document.body.scrollHeight); },
+    scrollDownHalfPage: function (meta) { scrollHalfPage(1, meta); },
+    scrollUpHalfPage: function (meta) { scrollHalfPage(-1, meta); },
+    goToPageBottom: function () { scrollToEnd(1); },
+    goToPageTop: function () { scrollToEnd(-1); },
     goToFirstInput: goToFirstInput,
     enterFindMode: function () { findMode.open(); },
     findNext: function () { findMode.move(1); },
@@ -304,6 +322,9 @@ function isEmbed(element) { return ["EMBED", "OBJECT"].indexOf(element.tagName) 
 
 function setSettings(message) {
     settings = message;
+    // In the browser `var settings` is already the global the vendored sVim
+    // scroller reads; under Jest each file is its own module, so publish it.
+    window.settings = settings;
     activateExtension(settings);
 }
 
