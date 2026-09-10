@@ -43,7 +43,8 @@ Changes apply to open pages without a reload.
 
 **Modifier** - Modifier key to hold down with your action key. If
 you leave it blank you don't need to hold down anything (default
-setting).
+setting). It applies to every key of a shortcut, so with `ctrl` the
+two-key `yy` becomes `⌃y⌃y`.
 
 **Excluded URLs** - Comma separated list of website URLs you don't want
 to use Vimkit with. To exclude GitHub for example, provide the value
@@ -103,9 +104,9 @@ These bindings are the ones set by default, however you are able to change them 
     l       Scroll right
     u       Scroll up half page
     d       Scroll down half page
-    g g     Go to top of page
+    gg      Go to top of page
     G       Go to bottom of page
-    g i     Go to first input
+    gi      Go to first input
     /       Find text on the page
     n       Next find match
     N       Previous find match
@@ -136,12 +137,14 @@ These bindings are the ones set by default, however you are able to change them 
     t       Open new tab
     yt      Duplicate the current tab
 
-`Vimkit v2.1+`
-
 #### Vimkit Modes
     i       Enter insert mode
     ESC     Enter normal mode
     CTRL+[  Enter normal mode
+
+`CTRL+[` is an alias for `ESC`. If a shortcut is bound to `CTRL+[` — which a
+`ctrl` modifier does to `[[` — that shortcut wins and `ESC` remains the way
+back to normal mode.
     
 ### Tips & Tricks
 

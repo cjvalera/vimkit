@@ -55,7 +55,8 @@ var commandDescriptions = {
     restoreTab: "Restore the last closed tab",
     openTab: "Open a new tab",
     duplicateTab: "Duplicate the current tab",
-    showHelp: "Show this shortcut reference"
+    showHelp: "Show this shortcut reference",
+    enterInsertMode: "Enter insert mode"
 };
 
 function reportRequest(request) {
@@ -165,7 +166,8 @@ var actionMap = {
     copyCurrentUrl: function () { clipboardController.copy(window.location.href, "URL"); },
     goUpUrl: function () { navigateUpUrl(false); },
     goRootUrl: function () { navigateUpUrl(true); },
-    showHelp: showHelp
+    showHelp: showHelp,
+    enterInsertMode: function () { enterInsertMode(); }
 };
 
 function goToFirstInput() {
@@ -200,7 +202,6 @@ function bindKeyCodesToActions(nextSettings) {
     Object.keys(actionMap).forEach(function (actionName) {
         commandDispatcher.register(actionName, effectiveBindingsFor(actionName), executeAction(actionName), nextSettings.modifier);
     });
-    commandDispatcher.register("enterInsertMode", "i", enterInsertMode);
 }
 
 function enterNormalMode() {
@@ -240,9 +241,16 @@ function eventTargetsEditable(event) {
     return path.some(isEditable);
 }
 
+// Ctrl-[ only stands in for Escape while no shortcut is bound to it, so the
+// dispatcher decides once the bindings are known.
+function isEscapeToken(token) {
+    if (commandDispatcher) return commandDispatcher.isEscape(token);
+    return token === "esc" || token === "ctrl+[";
+}
+
 function onDocumentKeyDown(event) {
     var token = VimkitCommandDispatcher.eventToToken(event);
-    if (token === "esc" || token === "ctrl+[") {
+    if (isEscapeToken(token)) {
         enterNormalMode();
         event.preventDefault();
         event.stopPropagation();

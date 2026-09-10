@@ -58,21 +58,26 @@ var VimkitCommandDispatcher = (function () {
         return modifiers.concat(key).join("+");
     }
 
+    // The global modifier is held for every key of a shortcut, not just the
+    // first. Modifying only the first key would leave the rest of a sequence
+    // listening for bare letters, which is exactly what the setting exists to
+    // avoid while the user is typing on a page.
     function applyGlobalModifier(binding, modifier) {
         var tokens = normalizeBinding(binding);
         var normalizedModifier = normalizeToken(modifier);
         if (!normalizedModifier || tokens.length === 0) return tokens;
 
         var modifierParts = normalizedModifier.split("+");
-        var firstParts = tokens[0].split("+");
-        var key = firstParts.pop();
-        tokens[0] = MODIFIER_ORDER
-            .filter(function (item) {
-                return modifierParts.indexOf(item) >= 0 || firstParts.indexOf(item) >= 0;
-            })
-            .concat(key)
-            .join("+");
-        return tokens;
+        return tokens.map(function (token) {
+            var parts = token.split("+");
+            var key = parts.pop();
+            return MODIFIER_ORDER
+                .filter(function (item) {
+                    return modifierParts.indexOf(item) >= 0 || parts.indexOf(item) >= 0;
+                })
+                .concat(key)
+                .join("+");
+        });
     }
 
     var MODIFIER_SYMBOLS = { ctrl: "\u2303", alt: "\u2325", meta: "\u2318", shift: "\u21e7" };
@@ -118,8 +123,10 @@ var VimkitCommandDispatcher = (function () {
     function CommandDispatcher(options) {
         options = options || {};
         this.timeout = options.timeout == null ? 1000 : options.timeout;
-        this.setTimer = options.setTimer || setTimeout;
-        this.clearTimer = options.clearTimer || clearTimeout;
+        // Window timers throw when called with another object as `this`, so
+        // they are wrapped rather than stored bare.
+        this.setTimer = options.setTimer || function (callback, delay) { return setTimeout(callback, delay); };
+        this.clearTimer = options.clearTimer || function (timer) { clearTimeout(timer); };
         this.onPending = options.onPending || function () {};
         this.root = createNode();
         this.reset();
@@ -139,6 +146,15 @@ var VimkitCommandDispatcher = (function () {
             node.command = { name: name, handler: handler };
             node.binding = tokens.join(" ");
         });
+    };
+
+    // Escape always leaves the current mode. Ctrl-[ is vim's alias for it, but
+    // a binding registered on Ctrl-[ wins, so a global "ctrl" modifier cannot
+    // silently make a shortcut such as [[ unreachable.
+    CommandDispatcher.prototype.isEscape = function (token) {
+        var normalized = normalizeToken(token);
+        if (normalized === "esc") return true;
+        return normalized === "ctrl+[" && !this.root.children.has("ctrl+[");
     };
 
     CommandDispatcher.prototype.cancelTimer = function () {
@@ -186,7 +202,7 @@ var VimkitCommandDispatcher = (function () {
     CommandDispatcher.prototype.handleToken = function (token) {
         token = normalizeToken(token);
         if (!token) return false;
-        if (token === "esc" || token === "ctrl+[") {
+        if (this.isEscape(token)) {
             var hadPendingInput = this.sequence.length > 0 || this.countText.length > 0;
             this.reset();
             return hadPendingInput;
@@ -206,16 +222,14 @@ var VimkitCommandDispatcher = (function () {
         this.cancelTimer();
         var next = this.node.children.get(token);
         if (!next) {
-            // A failed continuation should get one chance to start a new command.
-            var rootNext = this.root.children.get(token);
-            this.node = this.root;
-            this.sequence = [];
-            if (!rootNext) {
-                this.countText = "";
-                this.onPending("");
-                return false;
-            }
-            next = rootNext;
+            // A key that does not continue the pending sequence abandons it
+            // rather than restarting at the root. Restarting made a mistyped
+            // prefix run whatever the second key means on its own, so "yx"
+            // closed the tab the user meant to copy the URL of. The key is
+            // swallowed when it ends a sequence the user had started.
+            var hadPendingSequence = this.sequence.length > 0;
+            this.reset();
+            return hadPendingSequence;
         }
 
         this.node = next;

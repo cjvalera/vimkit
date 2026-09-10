@@ -14,9 +14,36 @@ describe("CommandDispatcher", () => {
         return new CommandDispatcher({ timeout: 1000 });
     }
 
+    it("calls window timers without rebinding this", () => {
+        // Browsers throw when setTimeout/clearTimeout run with another object
+        // as `this`; Node's timers do not, so emulate the browser check.
+        const setTimer = global.setTimeout;
+        const clearTimer = global.clearTimeout;
+        const strict = fn => function () {
+            if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+            return fn.apply(undefined, arguments);
+        };
+        global.setTimeout = strict(setTimer);
+        global.clearTimeout = strict(clearTimer);
+        try {
+            const called = jest.fn();
+            const dispatcher = createDispatcher();
+            dispatcher.register("top", "g g", called);
+            expect(() => dispatcher.handleToken("g")).not.toThrow();
+            jest.advanceTimersByTime(1000);
+            dispatcher.handleToken("g");
+            expect(called).not.toHaveBeenCalled();
+            dispatcher.handleToken("g");
+            expect(called).toHaveBeenCalledTimes(1);
+        } finally {
+            global.setTimeout = setTimer;
+            global.clearTimeout = clearTimer;
+        }
+    });
+
     it("normalizes legacy bindings and keyboard events", () => {
         expect(normalizeBinding("g shift+G")).toEqual(["g", "shift+g"]);
-        expect(applyGlobalModifier("g g", "ctrl")).toEqual(["ctrl+g", "g"]);
+        expect(applyGlobalModifier("g g", "ctrl")).toEqual(["ctrl+g", "ctrl+g"]);
         expect(eventToToken({ key: "G", shiftKey: true })).toBe("shift+g");
         expect(eventToToken({ key: "?", shiftKey: true })).toBe("?");
         expect(eventToToken({ key: "ArrowDown" })).toBe("down");
@@ -29,8 +56,23 @@ describe("CommandDispatcher", () => {
         dispatcher.register("top", ["g g", "home"], called, "ctrl");
 
         expect(dispatcher.handleToken("ctrl+g")).toBe(true);
-        dispatcher.handleToken("g");
-        expect(called).toHaveBeenCalledWith(expect.objectContaining({ binding: "ctrl+g g" }));
+        dispatcher.handleToken("ctrl+g");
+        expect(called).toHaveBeenCalledWith(expect.objectContaining({ binding: "ctrl+g ctrl+g" }));
+    });
+
+    it("holds the global modifier for every key of a sequence", () => {
+        const called = jest.fn();
+        const dispatcher = createDispatcher();
+        dispatcher.register("copyUrl", "y y", called, "ctrl");
+
+        // A bare second key belongs to the page, not to Vimkit.
+        dispatcher.handleToken("ctrl+y");
+        expect(dispatcher.handleToken("y")).toBe(true);
+        expect(called).not.toHaveBeenCalled();
+
+        dispatcher.handleToken("ctrl+y");
+        dispatcher.handleToken("ctrl+y");
+        expect(called).toHaveBeenCalledTimes(1);
     });
 
     it("resolves overlapping commands after the timeout", () => {
@@ -91,6 +133,57 @@ describe("CommandDispatcher", () => {
         dispatcher.handleToken("esc");
         jest.advanceTimersByTime(1000);
         expect(called).not.toHaveBeenCalled();
+    });
+
+    it("abandons a mistyped prefix instead of running the second key alone", () => {
+        const copyUrl = jest.fn();
+        const closeTab = jest.fn();
+        const dispatcher = createDispatcher();
+        dispatcher.register("copyUrl", "y y", copyUrl);
+        dispatcher.register("closeTab", "x", closeTab);
+
+        // "yx" is a slip of the second key, not a request to close the tab.
+        dispatcher.handleToken("y");
+        expect(dispatcher.handleToken("x")).toBe(true);
+        expect(closeTab).not.toHaveBeenCalled();
+        expect(copyUrl).not.toHaveBeenCalled();
+
+        // The sequence is over, so the next "x" is a command again.
+        dispatcher.handleToken("x");
+        expect(closeTab).toHaveBeenCalledTimes(1);
+    });
+
+    it("drops a pending count when the sequence is abandoned", () => {
+        const scroll = jest.fn();
+        const dispatcher = createDispatcher();
+        dispatcher.register("top", "g g", jest.fn());
+        dispatcher.register("scroll", "j", scroll);
+
+        dispatcher.handleToken("3");
+        dispatcher.handleToken("g");
+        expect(dispatcher.handleToken("z")).toBe(true);
+        dispatcher.handleToken("j");
+        expect(scroll).toHaveBeenCalledWith(expect.objectContaining({ count: 1, countProvided: false }));
+    });
+
+    it("lets a binding on Ctrl-[ win over the Escape alias", () => {
+        const previousPage = jest.fn();
+        const plain = createDispatcher();
+        plain.register("top", "g g", jest.fn());
+
+        expect(plain.isEscape("esc")).toBe(true);
+        expect(plain.isEscape("ctrl+[")).toBe(true);
+
+        // A "ctrl" modifier turns "[ [" into "ctrl+[ ctrl+[", which used to be
+        // swallowed as Escape and left the shortcut unreachable.
+        const bound = createDispatcher();
+        bound.register("previousPage", "[ [", previousPage, "ctrl");
+
+        expect(bound.isEscape("ctrl+[")).toBe(false);
+        expect(bound.isEscape("esc")).toBe(true);
+        bound.handleToken("ctrl+[");
+        bound.handleToken("ctrl+[");
+        expect(previousPage).toHaveBeenCalledTimes(1);
     });
 
     it("expires incomplete counts and sequences", () => {

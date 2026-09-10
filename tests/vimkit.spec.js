@@ -196,4 +196,46 @@ describe('new default bindings dispatch', () => {
         const calls = browser.runtime.sendMessage.mock.calls;
         expect(calls[calls.length - 1][0]).to.eql({ action: 'tabs.reload', bypassCache: true });
     });
+
+    it('does not close the tab when the second key of "yy" is mistyped', () => {
+        const closeTab = jest.spyOn(window.VimkitInjected.actionMap, 'closeTab').mockImplementation(() => {});
+        press('y'); press('x');
+        expect(closeTab.mock.calls.length).to.equal(0);
+        press('x');
+        expect(closeTab.mock.calls.length).to.equal(1);
+    });
+
+    it('lists insert mode in the help overlay', () => {
+        press('?', { shiftKey: true });
+        const help = document.querySelector('[data-vimkit-overlay="help"]');
+        expect(help.shadowRoot.textContent).to.contain('Enter insert mode');
+        window.VimkitInjected.enterNormalMode();
+    });
+});
+
+describe('insert mode binding', () => {
+    afterEach(() => {
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings)));
+        jest.restoreAllMocks();
+    });
+
+    function press(key, init) {
+        document.body.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ key, bubbles: true }, init || {})));
+    }
+
+    it('comes from the settings rather than a hardcoded key', () => {
+        const settings = JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings));
+        settings.bindings.enterInsertMode = 'a';
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(settings);
+
+        const scrollDown = jest.spyOn(window.VimkitInjected.actionMap, 'scrollDown').mockImplementation(() => {});
+        // "i" is no longer insert mode, so "j" still scrolls after it.
+        press('i'); press('j');
+        expect(scrollDown.mock.calls.length).to.equal(1);
+
+        press('a'); press('j');
+        expect(scrollDown.mock.calls.length).to.equal(1);
+    });
 });

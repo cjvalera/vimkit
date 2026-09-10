@@ -48,6 +48,7 @@
       "restoreTab": "shift+x",
       "openTab": "t",
       "duplicateTab": "y t",
-      "showHelp": "?"
+      "showHelp": "?",
+      "enterInsertMode": "i"
   }
 }

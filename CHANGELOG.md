@@ -14,6 +14,14 @@ and link to that project's issue tracker; they are kept here for history.
 * Move tab actions to standard WebExtension APIs and settings to `browser.storage.local`.
 * Add a JSON settings page with validation, reset, import, and export support.
 * Add sequence-aware commands with count prefixes and `gt`/`gT` aliases.
+* A mistyped second key abandons the sequence instead of running on its own,
+  so `yx` no longer closes the tab you meant to copy the URL of.
+* The modifier setting applies to every key of a shortcut rather than only the
+  first, keeping a page's own typing out of a half-finished sequence.
+* `CTRL+[` yields to a shortcut bound to it, so a `ctrl` modifier no longer
+  makes `[[` unreachable. `ESC` is unaffected.
+* Insert mode is a normal binding (`enterInsertMode`), so `i` can be rebound
+  and appears in the shortcut overlay.
 * Add page find, URL and link copying, multi-link hints, URL-level navigation,
   and an accessible shortcut overlay. Find highlights every match while you
   type and selects the current one when the bar closes, so `n`/`N` continue
