@@ -7,7 +7,7 @@ class ViewController: NSViewController {
     @IBOutlet var spinner: NSProgressIndicator!
     
     private enum Constant {
-        static let extensionIdentifier = "com.christianvalera.Vimkit.Extension"
+        static let extensionIdentifier = "com.valera.vimkit.app.VimkitExtension"
     }
 
     func refreshExtensionStatus() {

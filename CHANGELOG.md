@@ -8,7 +8,7 @@ and link to that project's issue tracker; they are kept here for history.
 ### 1.0.0 — first Vimkit release
 
 * Rename the project to Vimkit, with its own bundle identifiers
-  (`com.christianvalera.Vimkit`), original icon, and independent App Store
+  (`com.valera.vimkit.app`), original icon, and independent App Store
   identity. Vimkit does not update or replace Vimari.
 * Replace the legacy Safari App Extension with a Manifest V3 Safari Web Extension.
 * Move tab actions to standard WebExtension APIs and settings to `browser.storage.local`.
