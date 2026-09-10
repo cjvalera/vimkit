@@ -140,3 +140,12 @@ div.internalVimiumHintMarker.vimkitHint-input > .matchingCharacter {
   -webkit-user-select:none;
 }
 
+/* Page-find matches while the find bar is open (CSS Custom Highlight API). */
+::highlight(vimkit-find-match) {
+  background-color: rgba(255, 214, 0, 0.45);
+}
+
+::highlight(vimkit-find-current) {
+  background-color: #ff8a1f;
+  color: #111111;
+}

@@ -207,6 +207,15 @@ var VimkitContentFeatures = (function () {
         overlay.root.querySelector("button").focus();
     };
 
+    var HIGHLIGHT_MATCHES = "vimkit-find-match";
+    var HIGHLIGHT_CURRENT = "vimkit-find-current";
+
+    function highlightRegistry(windowObject) {
+        var css = windowObject.CSS;
+        if (!css || !css.highlights || typeof windowObject.Highlight !== "function") return null;
+        return css.highlights;
+    }
+
     function FindMode(documentObject, windowObject, overlays) {
         this.document = documentObject;
         this.window = windowObject;
@@ -268,18 +277,53 @@ var VimkitContentFeatures = (function () {
         this.count.classList.toggle("muted", this.matches.length > 0 || !this.query);
     };
 
-    FindMode.prototype.selectCurrent = function () {
-        if (this.index < 0 || !this.matches[this.index]) {
-            this.updateCount();
-            return false;
-        }
-        var match = this.matches[this.index];
+    FindMode.prototype.rangeFor = function (match) {
         var range = this.document.createRange();
         range.setStart(match.node, match.start);
         range.setEnd(match.node, match.end);
+        return range;
+    };
+
+    // Moving the selection while the find field has focus makes the browser
+    // send the following keystrokes to the page instead of the field, so an
+    // open bar shows matches with CSS highlights and only hands the current
+    // match to the selection when it closes.
+    FindMode.prototype.paintHighlights = function () {
+        var registry = highlightRegistry(this.window);
+        if (!registry) return;
+        this.clearHighlights();
+        if (!this.isOpen() || this.index < 0) return;
+        var self = this;
+        var others = new this.window.Highlight();
+        this.matches.forEach(function (match, index) {
+            if (index !== self.index) others.add(self.rangeFor(match));
+        });
+        registry.set(HIGHLIGHT_MATCHES, others);
+        registry.set(HIGHLIGHT_CURRENT, new this.window.Highlight(this.rangeFor(this.matches[this.index])));
+    };
+
+    FindMode.prototype.clearHighlights = function () {
+        var registry = highlightRegistry(this.window);
+        if (!registry) return;
+        registry.delete(HIGHLIGHT_MATCHES);
+        registry.delete(HIGHLIGHT_CURRENT);
+    };
+
+    FindMode.prototype.selectMatch = function (match) {
         var selection = this.window.getSelection();
         selection.removeAllRanges();
-        selection.addRange(range);
+        selection.addRange(this.rangeFor(match));
+    };
+
+    FindMode.prototype.selectCurrent = function () {
+        var match = this.index >= 0 ? this.matches[this.index] : null;
+        if (!match) {
+            this.clearHighlights();
+            this.updateCount();
+            return false;
+        }
+        if (this.isOpen()) this.paintHighlights();
+        else this.selectMatch(match);
         if (match.node.parentElement && match.node.parentElement.scrollIntoView) {
             match.node.parentElement.scrollIntoView({ block: "center", behavior: "smooth" });
         }
@@ -308,11 +352,17 @@ var VimkitContentFeatures = (function () {
     };
 
     FindMode.prototype.close = function (restoreFocus) {
+        var wasOpen = this.isOpen();
         if (restoreFocus !== false && this.input) this.input.blur();
         removeHost(this.host);
         this.host = null;
         this.input = null;
         this.count = null;
+        this.clearHighlights();
+        if (!wasOpen || this.index < 0) return;
+        // The current match becomes the selection so n and N continue from it.
+        this.refresh();
+        if (this.index >= 0 && this.matches[this.index]) this.selectMatch(this.matches[this.index]);
     };
 
     function ClipboardController(documentObject, navigatorObject, overlays) {

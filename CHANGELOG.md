@@ -15,7 +15,9 @@ and link to that project's issue tracker; they are kept here for history.
 * Add a JSON settings page with validation, reset, import, and export support.
 * Add sequence-aware commands with count prefixes and `gt`/`gT` aliases.
 * Add page find, URL and link copying, multi-link hints, URL-level navigation,
-  and an accessible shortcut overlay.
+  and an accessible shortcut overlay. Find highlights every match while you
+  type and selects the current one when the bar closes, so `n`/`N` continue
+  from it.
 * Add first/last/previous tab navigation, tab search, native tab creation and
   duplication, and cached closed-tab restore.
 * Add `]]`/`[[` to follow a page's next/previous link, `<<`/`>>` to move the

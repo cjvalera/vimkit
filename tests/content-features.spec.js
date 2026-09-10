@@ -48,6 +48,35 @@ describe("content features", () => {
         find.close();
     });
 
+    it("highlights matches while open and selects the current match on close", () => {
+        document.body.innerHTML = "<p>needle one. needle two.</p>";
+        makeVisible(document.querySelector("p"));
+        window.getSelection().removeAllRanges();
+        const previous = { CSS: window.CSS, Highlight: window.Highlight };
+        const registry = new Map();
+        window.CSS = { highlights: registry };
+        window.Highlight = function (...ranges) { return new Set(ranges); };
+        try {
+            const find = new FindMode(document, window, new OverlayManager(document, window));
+            find.open();
+            find.update("needle");
+            expect(window.getSelection().rangeCount).toBe(0);
+            expect([...registry.get("vimkit-find-current")][0].toString()).toBe("needle");
+            expect(registry.get("vimkit-find-match").size).toBe(1);
+            find.move(1);
+            expect([...registry.get("vimkit-find-current")][0].startOffset).toBe(12);
+            find.close();
+            expect(registry.has("vimkit-find-current")).toBe(false);
+            expect(window.getSelection().toString()).toBe("needle");
+            expect(window.getSelection().anchorOffset).toBe(12);
+            find.move(1);
+            expect(window.getSelection().anchorOffset).toBe(0);
+        } finally {
+            window.CSS = previous.CSS;
+            window.Highlight = previous.Highlight;
+        }
+    });
+
     it("shows a no-match state and closes on Escape", () => {
         document.body.innerHTML = "<p>only hay</p>";
         makeVisible(document.querySelector("p"));
