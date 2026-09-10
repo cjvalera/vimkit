@@ -70,6 +70,10 @@ behaviours have to be checked in Safari or Orion before a release:
   search rather than Vimkit's find bar, every other shortcut must still work,
   and `/` must be absent from the `?` overlay. Check it with
   `transparentBindings` both on and off.
+- **`filterLinkHints`** — with the setting on, hints are numbers; typing link
+  text narrows and renumbers them; `Enter` follows the first survivor; an
+  icon-only link is reachable through its `aria-label`. With it off, character
+  hints must return.
 
 ## Contributing
 

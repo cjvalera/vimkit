@@ -33,6 +33,10 @@ and link to that project's issue tracker; they are kept here for history.
 * Generate shortest prefix-free link hints, colour hints by element kind
   (link, control, text input), and add `yF`/`ym` to copy a link's text or a
   Markdown link.
+* Add `filterLinkHints`, an opt-in hint mode that selects a link by typing its
+  text. Hints become digits, the candidate set narrows against link text,
+  `aria-label`, `title`, `alt` and `placeholder`, and survivors are renumbered
+  as it narrows.
 * Add `excludedKeys`, per-site rules that surrender individual shortcuts to a
   site — GitHub's `/`, Gmail's `j`/`k` — instead of disabling Vimkit entirely.
   An excluded shortcut is left unbound, so it falls through to the page — even

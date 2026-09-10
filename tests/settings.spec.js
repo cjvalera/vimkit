@@ -59,7 +59,7 @@ describe("Vimkit settings", () => {
         expect(browser.storage.local.set).toHaveBeenLastCalledWith({ settings: defaults });
     });
 
-it("accepts a well-formed excludedKeys rule", () => {
+    it("accepts a well-formed excludedKeys rule", () => {
         const result = VimkitSettings.validate({
             excludedKeys: [{ pattern: "github.com", keys: ["/", "g i"] }]
         }, defaults);

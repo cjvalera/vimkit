@@ -11,6 +11,8 @@ var hintMarkers = [];
 var hintMarkerContainingDiv = null;
 // The characters that were typed in while in "link hints" mode.
 var hintKeystrokeQueue = [];
+// In filtered mode, the link text typed so far to narrow the candidate set.
+var linkHintTextFilter = "";
 var linkHintsModeActivated = false;
 // What happens once a hint is selected. See LinkHintMode.
 var linkHintMode = "open";
@@ -30,6 +32,29 @@ var LinkHintMode = Object.freeze({
 
 // Modes that only make sense for elements with an href.
 var LINK_ONLY_MODES = [LinkHintMode.copyUrl, LinkHintMode.copyText, LinkHintMode.copyMarkdown];
+
+// With filterLinkHints on, hints are digits and typing a link's visible text
+// narrows the set — Vimium's signature behaviour. Digits stay usable as an
+// escape hatch for links with no readable text (icons, images).
+function linkHintsFilterEnabled() {
+  return !!(typeof settings !== "undefined" && settings && settings.filterLinkHints);
+}
+
+// Everything a user might reasonably read off the element, folded to one
+// lowercase line so the filter is a plain substring test.
+function hintFilterText(element) {
+  var attribute = function (name) {
+    return element && typeof element.getAttribute === "function" ? (element.getAttribute(name) || "") : "";
+  };
+  var parts = [element && element.textContent, attribute("aria-label"), attribute("title"),
+               attribute("alt"), attribute("placeholder"), element && element.value];
+  return parts
+    .filter(function (part) { return typeof part === "string" && part.trim(); })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
 
 function activateLinkHintsModeToOpenInNewTab() { activateLinkHintsMode(LinkHintMode.openNewTab); }
 
@@ -88,7 +113,9 @@ function buildLinkHints() {
   if (visibleElements.length === 0)
     return false;
 
-  var hintStrings = generateHintStrings(visibleElements.length, settings.linkHintCharacters);
+  var hintStrings = linkHintsFilterEnabled()
+    ? visibleElements.map(function (_element, index) { return String(index + 1); })
+    : generateHintStrings(visibleElements.length, settings.linkHintCharacters);
   for (var i = 0; i < visibleElements.length; i++)
     hintMarkers.push(createMarkerFor(visibleElements[i], hintStrings[i]));
   // Note(philc): Append these markers as top level children instead of as child nodes to the link itself,
@@ -283,11 +310,29 @@ function onKeyDownInLinkHintsMode(event) {
   if (isEscape(event)) {
     deactivateLinkHintsMode();
   } else if (event.keyCode === keyCodes.backspace || event.keyCode === keyCodes.deleteKey) {
-    if (hintKeystrokeQueue.length === 0) {
-      deactivateLinkHintsMode();
-    } else {
+    // Backspace unwinds the digits first, then the text filter, then leaves.
+    if (hintKeystrokeQueue.length > 0) {
       hintKeystrokeQueue.pop();
       updateLinkHints();
+    } else if (linkHintsFilterEnabled() && linkHintTextFilter.length > 0) {
+      linkHintTextFilter = linkHintTextFilter.slice(0, -1);
+      updateLinkHints();
+    } else {
+      deactivateLinkHintsMode();
+    }
+  } else if (linkHintsFilterEnabled()) {
+    if (/^[0-9]$/.test(keyChar)) {
+      hintKeystrokeQueue.push(keyChar);
+      updateLinkHints();
+    } else if (keyChar === "enter") {
+      activateFirstVisibleHint();
+    } else if (keyChar.length === 1 && !event.ctrlKey && !event.metaKey) {
+      // Renumbering invalidates any digits already typed.
+      linkHintTextFilter += keyChar;
+      hintKeystrokeQueue = [];
+      updateLinkHints();
+    } else {
+      return;
     }
   } else if (settings.linkHintCharacters.indexOf(keyChar) >= 0) {
     hintKeystrokeQueue.push(keyChar);
@@ -317,38 +362,75 @@ function onKeyUpInLinkHintsMode(event) {
  */
 function updateLinkHints() {
   var matchString = hintKeystrokeQueue.join("");
-  var markersMatched = highlightLinkMatches(matchString);
+  var markersMatched;
+  if (linkHintsFilterEnabled()) {
+    var candidates = applyLinkHintTextFilter();
+    if (candidates.length === 0) {
+      // An over-narrow filter is a typo, not a decision to leave: hold the mode
+      // open so backspace can recover.
+      highlightLinkMatches(matchString, candidates);
+      return;
+    }
+    markersMatched = highlightLinkMatches(matchString, candidates);
+  } else {
+    markersMatched = highlightLinkMatches(matchString);
+  }
+
   if (markersMatched.length === 0) {
     deactivateLinkHintsMode();
   } else if (markersMatched.length === 1 && markersMatched[0].getAttribute("hintString") === matchString) {
-    var matchedLink = markersMatched[0].clickableItem;
-    if (isSelectable(matchedLink)) {
+    activateHintMarker(markersMatched[0]);
+  }
+}
+
+/*
+ * In filtered mode, hides the markers whose text does not contain the filter and
+ * renumbers the survivors, so a one-digit hint is always in reach.
+ */
+function applyLinkHintTextFilter() {
+  var candidates = [];
+  for (var i = 0; i < hintMarkers.length; i++) {
+    var text = hintMarkers[i].getAttribute("hintText") || "";
+    if (text.indexOf(linkHintTextFilter) >= 0) candidates.push(hintMarkers[i]);
+  }
+  for (var j = 0; j < candidates.length; j++)
+    setMarkerHintString(candidates[j], String(j + 1));
+  return candidates;
+}
+
+function activateFirstVisibleHint() {
+  var candidates = linkHintsFilterEnabled() ? applyLinkHintTextFilter() : hintMarkers;
+  if (candidates.length > 0) activateHintMarker(candidates[0]);
+}
+
+function activateHintMarker(marker) {
+  var matchedLink = marker.clickableItem;
+  if (isSelectable(matchedLink)) {
+    matchedLink.focus();
+    // When focusing a textbox, put the selection caret at the end of the textbox's contents.
+    matchedLink.setSelectionRange(matchedLink.value.length, matchedLink.value.length);
+    deactivateLinkHintsMode();
+  } else {
+    var copyValue = linkHintCopyValue(matchedLink, linkHintMode);
+    if (copyValue) {
+      clipboardController.copy(copyValue.text, copyValue.label);
       matchedLink.focus();
-      // When focusing a textbox, put the selection caret at the end of the textbox's contents.
-      matchedLink.setSelectionRange(matchedLink.value.length, matchedLink.value.length);
+      deactivateLinkHintsMode();
+      return;
+    }
+    // When we're opening the link in the current tab, don't navigate to the selected link immediately;
+    // we want to give the user some feedback depicting which link they've selected by focusing it.
+    if (linkHintMode === LinkHintMode.openQueue) {
+      simulateClick(matchedLink, true);
+      resetLinkHintsMode();
+    } else if (linkHintMode === LinkHintMode.openNewTab) {
+      simulateClick(matchedLink, true);
+      matchedLink.focus();
       deactivateLinkHintsMode();
     } else {
-      var copyValue = linkHintCopyValue(matchedLink, linkHintMode);
-      if (copyValue) {
-        clipboardController.copy(copyValue.text, copyValue.label);
-        matchedLink.focus();
-        deactivateLinkHintsMode();
-        return;
-      }
-      // When we're opening the link in the current tab, don't navigate to the selected link immediately;
-      // we want to give the user some feedback depicting which link they've selected by focusing it.
-      if (linkHintMode === LinkHintMode.openQueue) {
-        simulateClick(matchedLink, true);
-        resetLinkHintsMode();
-      } else if (linkHintMode === LinkHintMode.openNewTab) {
-        simulateClick(matchedLink, true);
-        matchedLink.focus();
-        deactivateLinkHintsMode();
-      } else {
-        setTimeout(function() { simulateClick(matchedLink, false); }, 400);
-        matchedLink.focus();
-        deactivateLinkHintsMode();
-      }
+      setTimeout(function() { simulateClick(matchedLink, false); }, 400);
+      matchedLink.focus();
+      deactivateLinkHintsMode();
     }
   }
 }
@@ -392,11 +474,12 @@ function isSelectable(element) {
  * Hides link hints which do not match the given search string. To allow the backspace key to work, this
  * will also show link hints which do match but were previously hidden.
  */
-function highlightLinkMatches(searchString) {
+function highlightLinkMatches(searchString, candidates) {
   var markersMatched = [];
   for (var i = 0; i < hintMarkers.length; i++) {
     var linkMarker = hintMarkers[i];
-    if (linkMarker.getAttribute("hintString").indexOf(searchString) === 0) {
+    var inCandidateSet = !candidates || candidates.indexOf(linkMarker) >= 0;
+    if (inCandidateSet && linkMarker.getAttribute("hintString").indexOf(searchString) === 0) {
       if (linkMarker.style.display === "none")
         linkMarker.style.display = "";
       for (var j = 0; j < linkMarker.childNodes.length; j++)
@@ -453,6 +536,7 @@ function deactivateLinkHintsMode() {
   hintMarkerContainingDiv = null;
   hintMarkers = [];
   hintKeystrokeQueue = [];
+  linkHintTextFilter = "";
   document.removeEventListener("keydown", onKeyDownInLinkHintsMode, true);
   document.removeEventListener("keyup", onKeyUpInLinkHintsMode, true);
   linkHintsModeActivated = false;
@@ -465,17 +549,26 @@ function resetLinkHintsMode() {
 }
 
 /*
+ * Writes a hint string onto a marker. Each character is its own span so the
+ * typed prefix can be highlighted, and filtered mode rewrites this as the
+ * candidate set narrows.
+ */
+function setMarkerHintString(marker, hintString) {
+  var innerHTML = [];
+  for (var i = 0; i < hintString.length; i++)
+    innerHTML.push('<span class="vimiumReset">' + hintString[i].toUpperCase() + '</span>');
+  marker.innerHTML = innerHTML.join("");
+  marker.setAttribute("hintString", hintString);
+}
+
+/*
  * Creates a link marker for the given link.
  */
 function createMarkerFor(link, hintString) {
   var marker = document.createElement("div");
   marker.className = "internalVimiumHintMarker vimiumReset vimkitHint-" + (link.kind || "control");
-  var innerHTML = [];
-  // Make each hint character a span, so that we can highlight the typed characters as you type them.
-  for (var i = 0; i < hintString.length; i++)
-    innerHTML.push('<span class="vimiumReset">' + hintString[i].toUpperCase() + '</span>');
-  marker.innerHTML = innerHTML.join("");
-  marker.setAttribute("hintString", hintString);
+  setMarkerHintString(marker, hintString);
+  marker.setAttribute("hintText", hintFilterText(link.element));
 
   // Note: this call will be expensive if we modify the DOM in between calls.
   var clientRect = link.rect;
@@ -500,6 +593,7 @@ if (typeof module !== "undefined") {
     clickableKind: clickableKind,
     deactivateLinkHintsMode: deactivateLinkHintsMode,
     generateHintStrings: generateHintStrings,
+    hintFilterText: hintFilterText,
     linkHintCopyValue: linkHintCopyValue,
     onKeyDownInLinkHintsMode: onKeyDownInLinkHintsMode,
     updateLinkHints: updateLinkHints

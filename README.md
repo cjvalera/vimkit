@@ -71,6 +71,15 @@ even when `transparentBindings` is off.
 **Link Hint Characters** - Allowed characters to be used when generating
 link shortcuts.
 
+**Filter Link Hints** - Set `filterLinkHints` to `true` to select links by
+typing their text instead of a hint string. Hints become numbers, typing narrows
+the set to links whose text, `aria-label`, `title`, `alt` or `placeholder`
+contains what you typed, and the survivors are renumbered so a single digit is
+always in reach. Press a hint's number to follow it — or <kbd>Enter</kbd>, which
+takes the first remaining link and is the way to pick `1` while `10` and `11`
+are still on screen. <kbd>Backspace</kbd> unwinds, <kbd>Esc</kbd> leaves. The
+numbers are the escape hatch for icons and images with no readable text.
+
 **Extra detection by cursor style** - Detect clickable links by looking
 for HTML elements having cursor style set to "pointer".
 

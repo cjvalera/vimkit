@@ -166,4 +166,115 @@ describe("link hint generation and classification", () => {
         });
         expect(clipboardController.copy).toHaveBeenCalledWith("https://example.com/legacy", "Link URL");
     });
+
+    describe("filterLinkHints", () => {
+        // Each link gets its own row so the occlusion check (elementFromPoint at
+        // the rect's corner) resolves to the link being tested.
+        let nextTop = 12;
+        function addLink(text, url) {
+            const link = document.createElement("a");
+            link.href = url;
+            link.textContent = text;
+            const rect = { top: nextTop, left: 12, width: 80, height: 20 };
+            nextTop += 30;
+            // jsdom leaves borderTopLeftRadius empty, which makes the occlusion
+            // offset NaN and hides everything; a real engine reports a length.
+            link.style.borderTopLeftRadius = "0px";
+            link.getClientRects = () => [rect];
+            document.body.appendChild(link);
+            return link;
+        }
+
+        function pressHintKey(key) {
+            const event = {
+                key,
+                keyCode: key.toUpperCase().charCodeAt(0),
+                preventDefault: jest.fn(),
+                stopPropagation: jest.fn()
+            };
+            linkHints.onKeyDownInLinkHintsMode(event);
+            return event;
+        }
+
+        function markers() {
+            return Array.from(document.querySelectorAll("#vimiumHintMarkerContainer > div"));
+        }
+
+        function visibleMarkers() {
+            return markers().filter(marker => marker.style.display !== "none");
+        }
+
+        beforeEach(() => {
+            global.settings.filterLinkHints = true;
+            nextTop = 12;
+            document.elementFromPoint = (x, y) => Array.from(document.querySelectorAll("a")).find(link => {
+                const rect = link.getClientRects()[0];
+                return y >= rect.top && y <= rect.top + rect.height;
+            }) || null;
+        });
+
+        it("numbers the hints instead of using hint characters", () => {
+            addLink("Alpha", "https://example.com/a");
+            addLink("Beta", "https://example.com/b");
+            linkHints.activateLinkHintsMode();
+            expect(markers().map(m => m.getAttribute("hintString"))).toEqual(["1", "2"]);
+        });
+
+        it("narrows the set by typed link text and renumbers the survivors", () => {
+            addLink("Alpha", "https://example.com/a");
+            addLink("Beta", "https://example.com/b");
+            addLink("Alphabet", "https://example.com/c");
+            linkHints.activateLinkHintsMode();
+
+            pressHintKey("a"); pressHintKey("l");
+            const shown = visibleMarkers();
+            expect(shown).toHaveLength(2);
+            expect(shown.map(m => m.getAttribute("hintString"))).toEqual(["1", "2"]);
+        });
+
+        it("matches aria-label and title as well as visible text", () => {
+            const icon = addLink("", "https://example.com/settings");
+            icon.setAttribute("aria-label", "Settings");
+            addLink("Home", "https://example.com/");
+            linkHints.activateLinkHintsMode();
+
+            pressHintKey("s"); pressHintKey("e");
+            expect(visibleMarkers()).toHaveLength(1);
+            expect(visibleMarkers()[0].clickableItem).toBe(icon);
+        });
+
+        it("keeps the mode open on an over-narrow filter so backspace recovers", () => {
+            addLink("Alpha", "https://example.com/a");
+            linkHints.activateLinkHintsMode();
+
+            pressHintKey("z");
+            expect(global.linkHintsModeActivated).toBe(true);
+            expect(visibleMarkers()).toHaveLength(0);
+
+            linkHints.onKeyDownInLinkHintsMode({
+                key: "Backspace", keyCode: 8, preventDefault: jest.fn(), stopPropagation: jest.fn()
+            });
+            expect(visibleMarkers()).toHaveLength(1);
+        });
+
+        it("selects a filtered link by its digit hint", () => {
+            addLink("Alpha", "https://example.com/a");
+            const beta = addLink("Beta", "https://example.com/b");
+            const focused = jest.spyOn(beta, "focus");
+            linkHints.activateLinkHintsMode();
+
+            pressHintKey("b"); pressHintKey("e");
+            pressHintKey("1");
+            expect(focused).toHaveBeenCalled();
+            expect(global.linkHintsModeActivated).toBe(false);
+        });
+
+        it("still uses hint characters when the setting is off", () => {
+            global.settings.filterLinkHints = false;
+            addLink("Alpha", "https://example.com/a");
+            addLink("Beta", "https://example.com/b");
+            linkHints.activateLinkHintsMode();
+            expect(markers().every(m => /^[asdfjklqwerzxc]+$/.test(m.getAttribute("hintString")))).toBe(true);
+        });
+    });
 });

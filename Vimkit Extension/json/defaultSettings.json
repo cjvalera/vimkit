@@ -2,6 +2,7 @@
   "excludedUrls": "",
   "excludedKeys": [],
   "linkHintCharacters": "asdfjklqwerzxc",
+  "filterLinkHints": false,
   "detectByCursorStyle": false,
   "scrollSize": 150,
   "openTabUrl": "https://duckduckgo.com/",

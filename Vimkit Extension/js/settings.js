@@ -27,7 +27,7 @@ var VimkitSettings = (function () {
         var value = merge(defaults, candidate);
         var errors = [];
         var stringKeys = ["excludedUrls", "linkHintCharacters", "openTabUrl", "modifier"];
-        var booleanKeys = ["detectByCursorStyle", "smoothScroll", "transparentBindings"];
+        var booleanKeys = ["detectByCursorStyle", "filterLinkHints", "smoothScroll", "transparentBindings"];
         var numberKeys = ["scrollSize", "scrollDuration"];
 
         if (Object.prototype.hasOwnProperty.call(candidate, "bindings") && !isPlainObject(candidate.bindings)) {
