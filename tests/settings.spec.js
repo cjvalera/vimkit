@@ -58,4 +58,32 @@ describe("Vimkit settings", () => {
         expect(reset).toEqual(defaults);
         expect(browser.storage.local.set).toHaveBeenLastCalledWith({ settings: defaults });
     });
+
+it("accepts a well-formed excludedKeys rule", () => {
+        const result = VimkitSettings.validate({
+            excludedKeys: [{ pattern: "github.com", keys: ["/", "g i"] }]
+        }, defaults);
+
+        expect(result.valid).toBe(true);
+        expect(result.value.excludedKeys).toEqual([{ pattern: "github.com", keys: ["/", "g i"] }]);
+    });
+
+    it("rejects malformed excludedKeys rules", () => {
+        expect(VimkitSettings.validate({ excludedKeys: {} }, defaults).errors)
+            .toContain("excludedKeys must be an array.");
+
+        const result = VimkitSettings.validate({
+            excludedKeys: [{ pattern: "  ", keys: [] }, "nope"]
+        }, defaults);
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContain("excludedKeys[0].pattern must be a non-empty string.");
+        expect(result.errors).toContain("excludedKeys[0].keys must be a non-empty array of non-empty strings.");
+        expect(result.errors).toContain("excludedKeys[1] must be a JSON object.");
+    });
+
+    it("keeps stored excludedKeys out of the defaults object", () => {
+        const merged = VimkitSettings.merge(defaults, { excludedKeys: [{ pattern: "a.test", keys: ["j"] }] });
+        merged.excludedKeys.push({ pattern: "b.test", keys: ["k"] });
+        expect(defaults.excludedKeys).toEqual([]);
+    });
 });

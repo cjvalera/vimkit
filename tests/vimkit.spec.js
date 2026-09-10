@@ -296,3 +296,77 @@ describe('scrolling a nested element', () => {
         scrollBy.mockRestore();
     });
 });
+
+describe('excludedKeys', () => {
+    const excludedKeysFor = window.excludedKeysFor;
+
+    function settingsWith(rules) {
+        const settings = JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings));
+        settings.excludedKeys = rules;
+        return settings;
+    }
+
+    it('collects the keys of every rule matching the URL, normalised', () => {
+        const excluded = excludedKeysFor(settingsWith([
+            { pattern: 'github.com', keys: ['/', 'G I'] },
+            { pattern: 'mail.google.com', keys: ['j'] }
+        ]), 'https://github.com/cjvalera/vimkit');
+        expect(excluded.has('/')).to.be.ok();
+        expect(excluded.has('g i')).to.be.ok();
+        expect(excluded.has('j')).to.not.be.ok();
+    });
+
+    it('ignores malformed rules instead of throwing', () => {
+        const excluded = excludedKeysFor(settingsWith([null, { pattern: 'github.com' }, { keys: ['j'] }]), 'https://github.com/');
+        expect(excluded.size).to.equal(0);
+        expect(excludedKeysFor({}, 'https://github.com/').size).to.equal(0);
+    });
+
+    it('leaves an excluded key unbound while the rest of the shortcuts survive', () => {
+        const settings = settingsWith([{ pattern: document.URL, keys: ['j'] }]);
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(settings);
+
+        expect(window.VimkitInjected.effectiveBindingsFor('scrollDown')).to.eql([]);
+        expect(window.VimkitInjected.effectiveBindingsFor('scrollUp')).to.eql(['k']);
+
+        const scrollDown = jest.spyOn(window.VimkitInjected.actionMap, 'scrollDown').mockImplementation(() => {});
+        const scrollUp = jest.spyOn(window.VimkitInjected.actionMap, 'scrollUp').mockImplementation(() => {});
+        window.VimkitInjected.bindKeyCodesToActions(settings);
+
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', bubbles: true, cancelable: true }));
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true, cancelable: true }));
+        expect(scrollDown.mock.calls.length).to.equal(0);
+        expect(scrollUp.mock.calls.length).to.equal(1);
+
+        window.VimkitInjected.setSettings(JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings)));
+    });
+
+    it('hands an excluded key to the site even with transparentBindings off', () => {
+        const settings = settingsWith([{ pattern: document.URL, keys: ['j'] }]);
+        settings.transparentBindings = false;
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(settings);
+
+        const excluded = new KeyboardEvent('keydown', { key: 'j', bubbles: true, cancelable: true });
+        const stoppedExcluded = jest.spyOn(excluded, 'stopPropagation');
+        document.dispatchEvent(excluded);
+        expect(stoppedExcluded.mock.calls.length).to.equal(0);
+
+        // An ordinary unbound key is still isolated from the page.
+        const unbound = new KeyboardEvent('keydown', { key: 'z', bubbles: true, cancelable: true });
+        const stoppedUnbound = jest.spyOn(unbound, 'stopPropagation');
+        document.dispatchEvent(unbound);
+        expect(stoppedUnbound.mock.calls.length).to.equal(1);
+
+        window.VimkitInjected.setSettings(JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings)));
+    });
+
+    it('does not exclude keys on a site the pattern does not match', () => {
+        const settings = settingsWith([{ pattern: 'example.invalid', keys: ['j'] }]);
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(settings);
+        expect(window.VimkitInjected.effectiveBindingsFor('scrollDown')).to.eql(['j']);
+        window.VimkitInjected.setSettings(JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings)));
+    });
+});

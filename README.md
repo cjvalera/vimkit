@@ -51,6 +51,23 @@ to use Vimkit with. To exclude GitHub for example, provide the value
 `github.com` or `http://github.com`. It's smart and should handle all
 possible domain cases.
 
+**Excluded Keys** - Give up individual shortcuts on individual sites rather
+than the whole extension. Each rule pairs a URL pattern — matched the same way
+as **Excluded URLs** — with the shortcuts to leave unbound there, so they fall
+through to the site:
+
+```json
+"excludedKeys": [
+  { "pattern": "github.com", "keys": ["/", "g i"] },
+  { "pattern": "mail.google.com", "keys": ["j", "k"] }
+]
+```
+
+Keys are written in binding syntax, the same as the `bindings` object — so
+`shift+f`, not the `F` the table below shows. An excluded shortcut is also left
+out of the <kbd>?</kbd> help overlay on that site, and is handed to the page
+even when `transparentBindings` is off.
+
 **Link Hint Characters** - Allowed characters to be used when generating
 link shortcuts.
 

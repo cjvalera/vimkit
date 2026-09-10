@@ -33,6 +33,11 @@ and link to that project's issue tracker; they are kept here for history.
 * Generate shortest prefix-free link hints, colour hints by element kind
   (link, control, text input), and add `yF`/`ym` to copy a link's text or a
   Markdown link.
+* Add `excludedKeys`, per-site rules that surrender individual shortcuts to a
+  site — GitHub's `/`, Gmail's `j`/`k` — instead of disabling Vimkit entirely.
+  An excluded shortcut is left unbound, so it falls through to the page — even
+  with `transparentBindings` off — and drops out of the help overlay for that
+  site.
 * Scroll the nested pane under the cursor or the focused element rather than
   always the document, so `j`/`k`, `u`/`d` and `gg`/`G` work inside app shells
   like Gmail and Slack. A pane already at the requested end hands the key to its

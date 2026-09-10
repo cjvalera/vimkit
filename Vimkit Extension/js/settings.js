@@ -15,6 +15,7 @@ var VimkitSettings = (function () {
         var supplied = isPlainObject(candidate) ? candidate : {};
         var merged = Object.assign({}, clone(defaults), supplied);
         merged.bindings = Object.assign({}, defaults.bindings, isPlainObject(supplied.bindings) ? supplied.bindings : {});
+        merged.excludedKeys = clone(Array.isArray(merged.excludedKeys) ? merged.excludedKeys : (defaults.excludedKeys || []));
         return merged;
     }
 
@@ -53,6 +54,26 @@ var VimkitSettings = (function () {
 
         if (typeof value.linkHintCharacters === "string" && value.linkHintCharacters.length < 2) {
             errors.push("linkHintCharacters must contain at least two characters.");
+        }
+
+        if (Object.prototype.hasOwnProperty.call(candidate, "excludedKeys") && !Array.isArray(candidate.excludedKeys)) {
+            errors.push("excludedKeys must be an array.");
+        } else if (Array.isArray(value.excludedKeys)) {
+            value.excludedKeys.forEach(function (rule, index) {
+                if (!isPlainObject(rule)) {
+                    errors.push(`excludedKeys[${index}] must be a JSON object.`);
+                    return;
+                }
+                if (typeof rule.pattern !== "string" || !rule.pattern.trim()) {
+                    errors.push(`excludedKeys[${index}].pattern must be a non-empty string.`);
+                }
+                var validKeys = Array.isArray(rule.keys) && rule.keys.length > 0 && rule.keys.every(function (key) {
+                    return typeof key === "string" && key.trim().length > 0;
+                });
+                if (!validKeys) {
+                    errors.push(`excludedKeys[${index}].keys must be a non-empty array of non-empty strings.`);
+                }
+            });
         }
 
         if (isPlainObject(value.bindings)) {

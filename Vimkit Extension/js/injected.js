@@ -9,6 +9,7 @@ var topWindow = (window.top === window),
     hudDuration = 5000,
     sitePropagationHandler = null,
     commandDispatcher = null,
+    excludedSingleKeyTokens = new Set(),
     extensionCommunicator = WebExtensionCommunicator(),
     overlays = new VimkitContentFeatures.OverlayManager(document, window),
     findMode = new VimkitContentFeatures.FindMode(document, window, overlays),
@@ -109,7 +110,8 @@ function hardReload() {
     });
 }
 
-function effectiveBindingsFor(actionName) {
+function effectiveBindingsFor(actionName, excludedKeys) {
+    var excluded = excludedKeys || excludedKeysFor(settings, document.URL);
     var configured = settings.bindings && settings.bindings[actionName];
     var bindings = Array.isArray(configured) ? configured.slice() : [configured];
     var aliases = actionName === "tabForward" ? ["g t"] : actionName === "tabBack" ? ["g shift+t"] : [];
@@ -119,7 +121,10 @@ function effectiveBindingsFor(actionName) {
             return VimkitCommandDispatcher.normalizeBinding(binding).join(" ") === normalizedAlias;
         })) bindings.push(alias);
     });
-    return bindings.filter(function (binding) { return typeof binding === "string" && binding.trim(); });
+    return bindings.filter(function (binding) {
+        if (typeof binding !== "string" || !binding.trim()) return false;
+        return !excluded.has(VimkitCommandDispatcher.normalizeBinding(binding).join(" "));
+    });
 }
 
 function showHelp() {
@@ -217,8 +222,18 @@ function bindKeyCodesToActions(nextSettings) {
         }
     });
     if (!topWindow) return;
+    var excludedKeys = excludedKeysFor(nextSettings, document.URL);
+    // Kept for onDocumentKeyDown: with transparentBindings off, every unhandled
+    // key is stopped, which would swallow an excluded key instead of handing it
+    // to the site. Only single-key exclusions can be recognised here — the first
+    // key of a sequence stays bound to the other sequences that start with it.
+    excludedSingleKeyTokens = new Set();
+    excludedKeys.forEach(function (binding) {
+        var tokens = VimkitCommandDispatcher.applyGlobalModifier(binding, nextSettings.modifier);
+        if (tokens.length === 1) excludedSingleKeyTokens.add(tokens[0]);
+    });
     Object.keys(actionMap).forEach(function (actionName) {
-        commandDispatcher.register(actionName, effectiveBindingsFor(actionName), executeAction(actionName), nextSettings.modifier);
+        commandDispatcher.register(actionName, effectiveBindingsFor(actionName, excludedKeys), executeAction(actionName), nextSettings.modifier);
     });
 }
 
@@ -280,7 +295,8 @@ function onDocumentKeyDown(event) {
     if (handled) {
         event.preventDefault();
         event.stopPropagation();
-    } else if (settings.transparentBindings === false && !eventTargetsEditable(event)) {
+    } else if (settings.transparentBindings === false && !eventTargetsEditable(event) &&
+               !excludedSingleKeyTokens.has(token)) {
         event.stopPropagation();
     }
 }
@@ -288,6 +304,7 @@ function onDocumentKeyDown(event) {
 function unbindKeyCodes() {
     if (commandDispatcher) commandDispatcher.reset();
     commandDispatcher = null;
+    excludedSingleKeyTokens = new Set();
     if (sitePropagationHandler) document.removeEventListener("keydown", sitePropagationHandler, true);
     sitePropagationHandler = null;
 }
@@ -347,12 +364,36 @@ function deactivateExtension() {
     unbindKeyCodes();
 }
 
+function urlMatchesPattern(pattern, currentUrl) {
+    var formattedUrl = stripProtocolAndWww(String(pattern || "")).toLowerCase().trim();
+    if (!formattedUrl) return false;
+    return String(currentUrl || "").toLowerCase().includes(formattedUrl);
+}
+
 function isExcludedUrl(storedExcludedUrls, currentUrl) {
     if (!storedExcludedUrls.length) return false;
     return storedExcludedUrls.split(",").some(function (excludedUrl) {
-        var formattedUrl = stripProtocolAndWww(excludedUrl).toLowerCase().trim();
-        return currentUrl.toLowerCase().includes(formattedUrl);
+        return urlMatchesPattern(excludedUrl, currentUrl);
     });
+}
+
+// Sites that already bind a key well (GitHub's "/", Gmail's j/k, YouTube's f)
+// only need that one shortcut surrendered, not the whole extension. An excluded
+// key is simply left unbound, so it falls through to the page the same way an
+// unbound key does under transparentBindings.
+function excludedKeysFor(nextSettings, currentUrl) {
+    var rules = nextSettings && nextSettings.excludedKeys;
+    var excluded = new Set();
+    if (!Array.isArray(rules)) return excluded;
+    rules.forEach(function (rule) {
+        if (!rule || !Array.isArray(rule.keys)) return;
+        if (!urlMatchesPattern(rule.pattern, currentUrl)) return;
+        rule.keys.forEach(function (key) {
+            var normalized = VimkitCommandDispatcher.normalizeBinding(key).join(" ");
+            if (normalized) excluded.add(normalized);
+        });
+    });
+    return excluded;
 }
 
 function stripProtocolAndWww(url) {
@@ -373,12 +414,14 @@ if (!inIframe()) {
 }
 
 window.isExcludedUrl = isExcludedUrl;
+window.excludedKeysFor = excludedKeysFor;
 window.stripProtocolAndWww = stripProtocolAndWww;
 window.VimkitInjected = {
     actionMap: actionMap,
     bindKeyCodesToActions: bindKeyCodesToActions,
     enterInsertMode: enterInsertMode,
     enterNormalMode: enterNormalMode,
+    effectiveBindingsFor: effectiveBindingsFor,
     eventTargetsEditable: eventTargetsEditable,
     isActiveElementEditable: isActiveElementEditable,
     navigateUpUrl: navigateUpUrl,

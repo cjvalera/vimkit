@@ -65,6 +65,11 @@ behaviours have to be checked in Safari or Orion before a release:
   `gg`/`G` must move the app's own scroller, not the document. A pane already at
   its end should hand the key to the next scrollable ancestor. On an ordinary
   long page the document must still scroll.
+- **`excludedKeys`** — with a rule such as
+  `{ "pattern": "github.com", "keys": ["/"] }`, `/` must open GitHub's own
+  search rather than Vimkit's find bar, every other shortcut must still work,
+  and `/` must be absent from the `?` overlay. Check it with
+  `transparentBindings` both on and off.
 
 ## Contributing
 
