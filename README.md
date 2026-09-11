@@ -107,10 +107,9 @@ can be cancelled with <kbd>Esc</kbd>. Counts from 1–999 work with scrolling,
 history, and relative tab navigation; for example, <kbd>5</kbd><kbd>j</kbd>
 scrolls five steps and <kbd>3</kbd><kbd>g</kbd><kbd>t</kbd> selects the third tab.
 
-Link hints are colour-coded: yellow for links, blue for buttons and other
-controls, green for text fields. Hints use the fewest characters the
-`linkHintCharacters` alphabet allows, so on sparse pages a single key selects
-a link; the assignment is deterministic for a given number of hints.
+Link hints use the fewest characters the `linkHintCharacters` alphabet allows,
+so on sparse pages a single key selects a link; the assignment is
+deterministic for a given number of hints.
 
 
 ### Keyboard Bindings

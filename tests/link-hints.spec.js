@@ -114,16 +114,6 @@ describe("link hint generation and classification", () => {
         expect(kind("plain")).toBeNull();
     });
 
-    it("marks hint markers with the element kind", () => {
-        const button = document.createElement("button");
-        button.textContent = "Go";
-        button.getClientRects = () => [{ top: 12, left: 12, width: 80, height: 20 }];
-        document.body.appendChild(button);
-        document.elementFromPoint = jest.fn(() => button);
-        linkHints.activateLinkHintsMode("open");
-        expect(document.querySelector(".internalVimiumHintMarker.vimkitHint-control")).not.toBeNull();
-    });
-
     it("selects a one-character hint immediately when hints are short", () => {
         const link = document.createElement("a");
         link.href = "https://example.com/only";

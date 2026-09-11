@@ -62,34 +62,6 @@ div.internalVimiumHintMarker > .matchingCharacter {
   color: #dcbc2a;
 }
 
-/* Buttons, toggles and other non-navigating controls. */
-div.internalVimiumHintMarker.vimkitHint-control {
-  background-color: #cfe3ff !important;
-  box-shadow: inset 0 -2px 0 #6f9fd8 !important;
-}
-
-div.internalVimiumHintMarker.vimkitHint-control span {
-  color: #123b6b;
-}
-
-div.internalVimiumHintMarker.vimkitHint-control > .matchingCharacter {
-  color: #8fb4e3;
-}
-
-/* Text fields and other editable inputs. */
-div.internalVimiumHintMarker.vimkitHint-input {
-  background-color: #d5f2d8 !important;
-  box-shadow: inset 0 -2px 0 #6fb877 !important;
-}
-
-div.internalVimiumHintMarker.vimkitHint-input span {
-  color: #17471f;
-}
-
-div.internalVimiumHintMarker.vimkitHint-input > .matchingCharacter {
-  color: #8fcb96;
-}
-
 .vimiumHUD, .vimiumHUD * {
   line-height: 100%;
   font-size: 11px;

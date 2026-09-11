@@ -150,7 +150,6 @@ function getVisibleClickableElements() {
       continue;
     var selectedRect = getFirstVisibleRect(element);
     if (selectedRect) {
-      selectedRect.kind = clickableKind(element);
       visibleElements.push(selectedRect);
     }
   }
@@ -566,7 +565,7 @@ function setMarkerHintString(marker, hintString) {
  */
 function createMarkerFor(link, hintString) {
   var marker = document.createElement("div");
-  marker.className = "internalVimiumHintMarker vimiumReset vimkitHint-" + (link.kind || "control");
+  marker.className = "internalVimiumHintMarker vimiumReset";
   setMarkerHintString(marker, hintString);
   marker.setAttribute("hintText", hintFilterText(link.element));
 

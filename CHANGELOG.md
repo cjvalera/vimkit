@@ -30,9 +30,8 @@ and link to that project's issue tracker; they are kept here for history.
   duplication, and cached closed-tab restore.
 * Add `]]`/`[[` to follow a page's next/previous link, `<<`/`>>` to move the
   current tab, and `R` for a cache-bypassing reload.
-* Generate shortest prefix-free link hints, colour hints by element kind
-  (link, control, text input), and add `yF`/`ym` to copy a link's text or a
-  Markdown link.
+* Generate shortest prefix-free link hints and add `yF`/`ym` to copy a link's
+  text or a Markdown link.
 * Add `filterLinkHints`, an opt-in hint mode that selects a link by typing its
   text. Hints become digits, the candidate set narrows against link text,
   `aria-label`, `title`, `alt` and `placeholder`, and survivors are renumbered
