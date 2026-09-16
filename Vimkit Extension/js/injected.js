@@ -114,7 +114,7 @@ function effectiveBindingsFor(actionName, excludedKeys) {
     var excluded = excludedKeys || excludedKeysFor(settings, document.URL);
     var configured = settings.bindings && settings.bindings[actionName];
     var bindings = Array.isArray(configured) ? configured.slice() : [configured];
-    var aliases = actionName === "tabForward" ? ["g t"] : actionName === "tabBack" ? ["g shift+t"] : [];
+    var aliases = actionName === "tabForward" ? ["gt"] : actionName === "tabBack" ? ["g shift+t"] : [];
     aliases.forEach(function (alias) {
         var normalizedAlias = VimkitCommandDispatcher.normalizeBinding(alias).join(" ");
         if (!bindings.some(function (binding) {

@@ -29,10 +29,20 @@ var VimkitCommandDispatcher = (function () {
         return ordered.concat(key).join("+");
     }
 
+    // A run of single characters is a sequence, so "gg" and "g g" are the same
+    // binding. Anything with a modifier ("shift+t") or a named key ("esc",
+    // "up") stays one token, so those still need spaces around them.
+    function splitChunk(chunk) {
+        if (chunk.indexOf("+") >= 0 || isNamedKey(chunk)) return [chunk];
+        return chunk.split("");
+    }
+
     function normalizeBinding(binding) {
         return String(binding || "")
             .trim()
             .split(/\s+/)
+            .filter(Boolean)
+            .flatMap(splitChunk)
             .map(normalizeToken)
             .filter(Boolean);
     }
@@ -91,6 +101,13 @@ var VimkitCommandDispatcher = (function () {
         space: "Space",
         tab: "Tab"
     };
+    var NAMED_KEYS = ["home", "end", "pageup", "pagedown", "backspace", "delete", "insert"]
+        .concat(Object.keys(KEY_LABELS));
+
+    function isNamedKey(chunk) {
+        var key = normalizeKeyName(chunk);
+        return NAMED_KEYS.indexOf(key) >= 0 || /^f\d{1,2}$/.test(key);
+    }
 
     // Renders one key token the way the README writes it: shift folds into an
     // uppercase letter, other modifiers keep their macOS symbol.

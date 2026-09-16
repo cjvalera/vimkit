@@ -100,7 +100,12 @@ page as if you were in insert mode.
 
 **Multiple Bindings** - You can bind multiple keybindings to a Vimkit
 action. This is done by specifying an array of bindings in the 
-configuration file, like so: `"goToPageTop": ["g g", "shift+k"]`.
+configuration file, like so: `"goToPageTop": ["gg", "shift+k"]`.
+
+Spaces between single-character keys are optional, so `gg` and `g g` are the
+same binding. A key with a modifier (`shift+t`) or a named key (`esc`, `up`,
+`home`) is one token and needs spaces around it: `g shift+t`, `g home`. Note
+that `up` is the arrow key, while `u p` is the two-key sequence.
 
 Bindings can be multi-key sequences. Sequences time out after one second and
 can be cancelled with <kbd>Esc</kbd>. Counts from 1–999 work with scrolling,

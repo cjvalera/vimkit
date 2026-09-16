@@ -200,9 +200,38 @@ describe("CommandDispatcher", () => {
     });
 });
 
+describe("normalizeBinding", () => {
+    it("reads a run of single characters as a sequence", () => {
+        expect(normalizeBinding("gg")).toEqual(["g", "g"]);
+        expect(normalizeBinding("]]")).toEqual(["]", "]"]);
+        expect(normalizeBinding("g$")).toEqual(["g", "$"]);
+        expect(normalizeBinding("gg")).toEqual(normalizeBinding("g g"));
+    });
+
+    it("keeps modifier and named-key tokens whole", () => {
+        expect(normalizeBinding("shift+f")).toEqual(["shift+f"]);
+        expect(normalizeBinding("g shift+t")).toEqual(["g", "shift+t"]);
+        expect(normalizeBinding("esc")).toEqual(["esc"]);
+        expect(normalizeBinding("up")).toEqual(["up"]);
+        expect(normalizeBinding("u p")).toEqual(["u", "p"]);
+        expect(normalizeBinding("g home")).toEqual(["g", "home"]);
+    });
+
+    it("dispatches a spaceless sequence", () => {
+        const dispatcher = new CommandDispatcher();
+        const called = jest.fn();
+        dispatcher.register("top", "gg", called);
+        dispatcher.handleToken("g");
+        dispatcher.handleToken("g");
+        expect(called).toHaveBeenCalledTimes(1);
+        expect(applyGlobalModifier("gg", "ctrl")).toEqual(["ctrl+g", "ctrl+g"]);
+    });
+});
+
 describe("formatBinding", () => {
     it("renders a key sequence as one shortcut without separating spaces", () => {
         expect(formatBinding("g g")).toBe("gg");
+        expect(formatBinding("gg")).toBe("gg");
         expect(formatBinding("] ]")).toBe("]]");
         expect(formatBinding("g $")).toBe("g$");
     });

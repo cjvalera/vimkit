@@ -14,6 +14,7 @@ and link to that project's issue tracker; they are kept here for history.
 * Move tab actions to standard WebExtension APIs and settings to `browser.storage.local`.
 * Add a JSON settings page with validation, reset, import, and export support.
 * Add sequence-aware commands with count prefixes and `gt`/`gT` aliases.
+* Key sequences can be written without spaces (`gg`, `]]`); `g g` still works.
 * A mistyped second key abandons the sequence instead of running on its own,
   so `yx` no longer closes the tab you meant to copy the URL of.
 * The modifier setting applies to every key of a shortcut rather than only the
