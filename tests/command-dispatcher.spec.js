@@ -253,3 +253,31 @@ describe("formatBinding", () => {
         expect(formatBinding(undefined)).toBe("");
     });
 });
+
+// Synthetic events stand in for each layout: what a key types (key) and where
+// it sits (code) differ, and bindings must follow what it types.
+describe("keyboard layouts", () => {
+    it("follows the typed character, not the physical key", () => {
+        // AZERTY: the key labelled A sits where QWERTY has Q.
+        expect(eventToToken({ key: "a", code: "KeyQ" })).toBe("a");
+        // Dvorak: the key labelled J sits where QWERTY has C.
+        expect(eventToToken({ key: "j", code: "KeyC" })).toBe("j");
+        // Russian ЙЦУКЕН: QWERTY's J types о, which is not j.
+        expect(eventToToken({ key: "о", code: "KeyJ" })).toBe("о");
+    });
+
+    it("makes Shift explicit for letters in any script", () => {
+        expect(eventToToken({ key: "О", code: "KeyJ", shiftKey: true })).toBe("shift+о");
+        expect(eventToToken({ key: "É", shiftKey: true })).toBe("shift+é");
+        expect(formatBinding("shift+о")).toBe("О");
+    });
+
+    it("dispatches bindings written in another script", () => {
+        const called = jest.fn();
+        const dispatcher = new CommandDispatcher({ timeout: 1000 });
+        dispatcher.register("scrollDown", ["j", "о"], called);
+        expect(dispatcher.handleEvent({ key: "о", code: "KeyJ" })).toBe(true);
+        expect(called).toHaveBeenCalledTimes(1);
+    });
+
+});

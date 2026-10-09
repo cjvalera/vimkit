@@ -113,6 +113,15 @@ same binding. A key with a modifier (`shift+t`) or a named key (`esc`, `up`,
 `home`) is one token and needs spaces around it: `g shift+t`, `g home`. Note
 that `up` is the arrow key, while `u p` is the two-key sequence.
 
+**Keyboard layouts** - Bindings and hint characters follow the character a
+key types, not where the key sits, so they move with your layout: on AZERTY
+`a` is the key labelled A, and on Dvorak `j` is wherever Dvorak puts J. On a
+non-Latin layout such as Russian, either switch to a Latin layout or write
+bindings and `linkHintCharacters` in your own script (`"scrollDown": ["j",
+"о"]`). The one exception is Option (`alt`) shortcuts: macOS turns Option-F
+into ƒ, so Vimkit reads the key's position instead, and an Option shortcut sits
+where its letter is on a US keyboard.
+
 Bindings can be multi-key sequences. Sequences time out after one second and
 can be cancelled with <kbd>Esc</kbd>. Counts from 1–999 work with scrolling,
 history, and relative tab navigation; for example, <kbd>5</kbd><kbd>j</kbd>

@@ -47,11 +47,15 @@ var VimkitCommandDispatcher = (function () {
             .filter(Boolean);
     }
 
+    // Bindings follow the character a key types (event.key), not its position,
+    // so they move with the layout: on AZERTY "a" is the key labelled A.
     function eventToToken(event) {
         var key = normalizeKeyName(event.key);
         // macOS Option combinations can report a composed character (for
         // example Option-F as ƒ). Recover the binding key from code so
         // Alt-based shortcuts remain portable between Safari and Orion.
+        // code is a physical position, so on Dvorak or AZERTY an Option
+        // shortcut sits where the letter is on a US keyboard.
         if (event.altKey && event.code && /^Key[A-Z]$/.test(event.code) && !/^[a-z]$/.test(key)) {
             key = event.code.slice(3).toLowerCase();
         }
@@ -62,10 +66,15 @@ var VimkitCommandDispatcher = (function () {
         if (event.altKey) modifiers.push("alt");
         if (event.metaKey) modifiers.push("meta");
 
-        // Shift is represented explicitly for letters and named keys. For punctuation,
-        // event.key already contains the shifted character (for example ? and ^).
-        if (event.shiftKey && (/^[a-z]$/.test(key) || key.length > 1)) modifiers.push("shift");
+        // Shift is represented explicitly for letters (in any script) and named
+        // keys. For punctuation, event.key already contains the shifted
+        // character (for example ? and ^).
+        if (event.shiftKey && (isLetter(key) || key.length > 1)) modifiers.push("shift");
         return modifiers.concat(key).join("+");
+    }
+
+    function isLetter(key) {
+        return /^\p{L}$/u.test(key);
     }
 
     // The global modifier is held for every key of a shortcut, not just the
@@ -118,7 +127,7 @@ var VimkitCommandDispatcher = (function () {
 
         var modifiers = parts;
         var label = KEY_LABELS[key] || key;
-        if (modifiers.indexOf("shift") >= 0 && /^[a-z]$/.test(key)) {
+        if (modifiers.indexOf("shift") >= 0 && isLetter(key)) {
             label = key.toUpperCase();
             modifiers = modifiers.filter(function (modifier) { return modifier !== "shift"; });
         }

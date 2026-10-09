@@ -106,6 +106,11 @@ behaviours have to be checked in Safari or Orion before a release:
   icon-only link is reachable through its `aria-label`. With it off, character
   hints must return.
 
+- **Keyboard layouts and IMEs** — the unit tests feed synthetic events, so
+  check the real thing once per release: with AZERTY and Dvorak, `j`/`k` and
+  `f` hints follow the key labels; with Russian, `j` does nothing unless bound
+  to `о`.
+
 ## Contributing
 
 If you'd like to contribute to the development of Vimkit you can help us out through several means:
