@@ -56,7 +56,6 @@
       "openTab": "t",
       "duplicateTab": "yt",
       "showHelp": "?",
-      "enterInsertMode": "i",
-      "exitInsertMode": "jj"
+      "enterInsertMode": "i"
   }
 }

@@ -223,15 +223,15 @@ similar app shells use. When nothing nested can scroll, the page scrolls.
 
 #### Vimkit Modes
     i       Enter insert mode
-    jj      Leave insert mode or a text field (typed quickly)
     ESC     Enter normal mode
     CTRL+[  Enter normal mode
 
-`jj` counts only when the second `j` follows within 200ms, so a slow `jj` is
-ordinary typing. The first `j` has already reached the field by then, and
-Vimkit deletes it again before leaving. Rebind `exitInsertMode` to choose
-another pair, such as `jk`, or list it in `excludedKeys` for a site where it
-gets in the way.
+To leave insert mode or a text field by typing `jj`, as in Vim, add
+`"exitInsertMode": "jj"` to `bindings` — it is off by default, or any word with
+a quick double `j` would kick you out of the field. Any pair works, such as
+`jk`. It counts only when the second key follows within 200ms, so a slow `jj` is
+ordinary typing; the first `j` has already reached the field by then, and
+Vimkit deletes it again before leaving.
 
 `CTRL+[` is an alias for `ESC`. If a shortcut is bound to `CTRL+[` — which a
 `ctrl` modifier does to `[[` — that shortcut wins and `ESC` remains the way

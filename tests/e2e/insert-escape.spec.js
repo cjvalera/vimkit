@@ -1,4 +1,5 @@
 const { test, expect, settle } = require("./fixtures");
+const defaults = require("../../Vimkit Extension/json/defaultSettings.json");
 
 // Real typing matters here: the first "j" genuinely lands in the field before
 // the second one arrives, which jsdom cannot reproduce.
@@ -13,9 +14,23 @@ const state = page => page.evaluate(() => ({
 }));
 
 test.describe("leaving insert mode with jj", () => {
+    // exitInsertMode is opt-in; setSettings is shallow, so pass every binding.
+    const bindJj = vimkit => vimkit.setSettings({ bindings: Object.assign({}, defaults.bindings, { exitInsertMode: "jj" }) });
+
+    test("is off by default", async ({ vimkit }) => {
+        const { page } = vimkit;
+        await vimkit.open(PAGE);
+        await page.click("#field");
+        await page.keyboard.type("hajj", { delay: 40 });
+        await settle(page, 300);
+
+        expect(await state(page)).toMatchObject({ value: "hajj", focused: "field" });
+    });
+
     test("removes the first j and blurs the field", async ({ vimkit }) => {
         const { page } = vimkit;
         await vimkit.open(PAGE);
+        await bindJj(vimkit);
         await page.click("#field");
         await page.keyboard.type("hajj", { delay: 40 });
         await settle(page, 300);
@@ -30,6 +45,7 @@ test.describe("leaving insert mode with jj", () => {
     test("keeps a slow jj as text", async ({ vimkit }) => {
         const { page } = vimkit;
         await vimkit.open(PAGE);
+        await bindJj(vimkit);
         await page.click("#field");
         await page.keyboard.press("j");
         await page.waitForTimeout(400);
@@ -42,6 +58,7 @@ test.describe("leaving insert mode with jj", () => {
     test("works in a contenteditable editor", async ({ vimkit }) => {
         const { page } = vimkit;
         await vimkit.open(PAGE);
+        await bindJj(vimkit);
         await page.click("#editor");
         await page.keyboard.press("End");
         await page.keyboard.type("yjj", { delay: 40 });

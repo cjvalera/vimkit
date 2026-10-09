@@ -235,6 +235,13 @@ describe('insert mode binding', () => {
         document.body.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ key, bubbles: true }, init || {})));
     }
 
+    // exitInsertMode is opt-in, so these tests bind it themselves.
+    function bindJj() {
+        const settings = JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings));
+        settings.bindings.exitInsertMode = 'jj';
+        window.VimkitInjected.setSettings(settings);
+    }
+
     it('comes from the settings rather than a hardcoded key', () => {
         const settings = JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings));
         settings.bindings.enterInsertMode = 'a';
@@ -251,6 +258,7 @@ describe('insert mode binding', () => {
     });
 
     it('leaves explicit insert mode on a quick "jj"', () => {
+        bindJj();
         const scrollDown = jest.spyOn(window.VimkitInjected.actionMap, 'scrollDown').mockImplementation(() => {});
         press('i'); press('j');
         const second = new KeyboardEvent('keydown', { key: 'j', bubbles: true, cancelable: true });
@@ -264,6 +272,7 @@ describe('insert mode binding', () => {
     describe('in a text field', () => {
         let input;
         beforeEach(() => {
+            bindJj();
             input = document.createElement('input');
             input.value = 'ha';
             document.body.appendChild(input);
@@ -294,6 +303,14 @@ describe('insert mode binding', () => {
             }
             return event;
         }
+
+        it('is off unless exitInsertMode is bound', () => {
+            window.VimkitInjected.setSettings(JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings)));
+            type('j');
+            type('j');
+            expect(input.value).to.equal('hajj');
+            expect(document.activeElement).to.be(input);
+        });
 
         it('takes the first "j" back out and leaves the field', () => {
             type('j');
