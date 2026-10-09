@@ -23,6 +23,8 @@ and link to that project's issue tracker; they are kept here for history.
   makes `[[` unreachable. `ESC` is unaffected.
 * Insert mode is a normal binding (`enterInsertMode`), so `i` can be rebound
   and appears in the shortcut overlay.
+* Typing `jj` quickly leaves insert mode or a focused text field, like `ESC`,
+  and removes the `j` it had already typed. Configurable as `exitInsertMode`.
 * Add page find, URL and link copying, multi-link hints, URL-level navigation,
   and an accessible shortcut overlay. Find highlights every match while you
   type and selects the current one when the bar closes, so `n`/`N` continue

@@ -9,6 +9,8 @@ var topWindow = (window.top === window),
     hudDuration = 5000,
     sitePropagationHandler = null,
     commandDispatcher = null,
+    insertEscapeDispatcher = null,
+    insertEscaped = false,
     excludedSingleKeyTokens = new Set(),
     extensionCommunicator = WebExtensionCommunicator(),
     overlays = new VimkitContentFeatures.OverlayManager(document, window),
@@ -57,7 +59,8 @@ var commandDescriptions = {
     openTab: "Open a new tab",
     duplicateTab: "Duplicate the current tab",
     showHelp: "Show this shortcut reference",
-    enterInsertMode: "Enter insert mode"
+    enterInsertMode: "Enter insert mode",
+    exitInsertMode: "Leave insert mode or a text field (typed quickly)"
 };
 
 function reportRequest(request) {
@@ -235,6 +238,36 @@ function bindKeyCodesToActions(nextSettings) {
     Object.keys(actionMap).forEach(function (actionName) {
         commandDispatcher.register(actionName, effectiveBindingsFor(actionName, excludedKeys), executeAction(actionName), nextSettings.modifier);
     });
+    // exitInsertMode is not in actionMap: in normal mode "jj" would make every
+    // "j" wait for a second key. It gets its own dispatcher, consulted only in
+    // insert mode or a text field, where a slow "jj" is ordinary typing.
+    insertEscapeDispatcher = new VimkitCommandDispatcher.CommandDispatcher({ timeout: 200 });
+    insertEscapeDispatcher.register("exitInsertMode", effectiveBindingsFor("exitInsertMode", excludedKeys), function (meta) {
+        insertEscaped = true;
+        removeTypedPrefix(meta.sequence);
+        enterNormalMode();
+    }, nextSettings.modifier);
+}
+
+// Every key of the sequence but the last already reached the field before it
+// was recognised, so leaving with "jj" would strand a "j". Take those back out.
+// shortcut: only plain one-character keys are removed; a shifted or modified key stays typed.
+function removeTypedPrefix(sequence) {
+    var typed = sequence.slice(0, -1);
+    if (typed.length === 0 || typed.some(function (token) { return token.length !== 1; })) return;
+    var text = typed.join("");
+    var field = document.activeElement;
+    var before = "";
+    if (field && typeof field.selectionStart === "number" && field.selectionStart === field.selectionEnd) {
+        before = String(field.value).slice(0, field.selectionStart);
+    } else if (field && field.isContentEditable) {
+        var selection = window.getSelection();
+        var node = selection.anchorNode;
+        if (selection.isCollapsed && node && node.nodeType === 3 && field.contains(node)) before = node.data.slice(0, selection.anchorOffset);
+    }
+    if (!before.endsWith(text) || typeof document.execCommand !== "function") return;
+    // execCommand edits like Backspace: it fires input events and keeps undo working.
+    for (var i = 0; i < text.length; i++) document.execCommand("delete");
 }
 
 function enterNormalMode() {
@@ -289,6 +322,16 @@ function onDocumentKeyDown(event) {
         event.stopPropagation();
         return;
     }
+    if (extensionActive && insertEscapeDispatcher && !linkHintsModeActivated && !event.repeat &&
+        (insertMode || eventTargetsEditable(event))) {
+        insertEscaped = false;
+        insertEscapeDispatcher.handleEvent(event);
+        if (insertEscaped) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+    }
     if (!extensionActive || insertMode || linkHintsModeActivated || findMode.isOpen() || overlays.modalHost) return;
     if (eventTargetsEditable(event) && !settings.modifier) return;
     var handled = commandDispatcher && commandDispatcher.handleEvent(event);
@@ -304,6 +347,8 @@ function onDocumentKeyDown(event) {
 function unbindKeyCodes() {
     if (commandDispatcher) commandDispatcher.reset();
     commandDispatcher = null;
+    if (insertEscapeDispatcher) insertEscapeDispatcher.reset();
+    insertEscapeDispatcher = null;
     excludedSingleKeyTokens = new Set();
     if (sitePropagationHandler) document.removeEventListener("keydown", sitePropagationHandler, true);
     sitePropagationHandler = null;

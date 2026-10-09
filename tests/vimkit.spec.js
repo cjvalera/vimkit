@@ -238,6 +238,86 @@ describe('insert mode binding', () => {
         press('a'); press('j');
         expect(scrollDown.mock.calls.length).to.equal(1);
     });
+
+    it('leaves explicit insert mode on a quick "jj"', () => {
+        const scrollDown = jest.spyOn(window.VimkitInjected.actionMap, 'scrollDown').mockImplementation(() => {});
+        press('i'); press('j');
+        const second = new KeyboardEvent('keydown', { key: 'j', bubbles: true, cancelable: true });
+        document.body.dispatchEvent(second);
+        expect(second.defaultPrevented).to.be(true);
+        expect(scrollDown.mock.calls.length).to.equal(0);
+        press('j');
+        expect(scrollDown.mock.calls.length).to.equal(1);
+    });
+
+    describe('in a text field', () => {
+        let input;
+        beforeEach(() => {
+            input = document.createElement('input');
+            input.value = 'ha';
+            document.body.appendChild(input);
+            input.focus();
+            input.setSelectionRange(2, 2);
+            // jsdom has no editing commands; emulate Backspace at the caret.
+            document.execCommand = jest.fn(() => {
+                const at = input.selectionStart;
+                input.value = input.value.slice(0, at - 1) + input.value.slice(at);
+                input.setSelectionRange(at - 1, at - 1);
+                return true;
+            });
+        });
+        afterEach(() => {
+            input.remove();
+            delete document.execCommand;
+            jest.useRealTimers();
+        });
+
+        // Dispatched events do not insert text, so type the character by hand
+        // the way the browser would after an unhandled keydown.
+        function type(key) {
+            const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+            input.dispatchEvent(event);
+            if (!event.defaultPrevented) {
+                input.value += key;
+                input.setSelectionRange(input.value.length, input.value.length);
+            }
+            return event;
+        }
+
+        it('takes the first "j" back out and leaves the field', () => {
+            type('j');
+            const second = type('j');
+            expect(second.defaultPrevented).to.be(true);
+            expect(input.value).to.equal('ha');
+            expect(document.activeElement).not.to.be(input);
+        });
+
+        it('types "jj" normally when the keys are slow', () => {
+            jest.useFakeTimers();
+            type('j');
+            jest.advanceTimersByTime(250);
+            type('j');
+            expect(input.value).to.equal('hajj');
+            expect(document.activeElement).to.be(input);
+        });
+
+        it('leaves the text alone when the field is not what was typed into', () => {
+            type('j');
+            input.value = 'changed';
+            input.setSelectionRange(7, 7);
+            type('j');
+            expect(input.value).to.equal('changed');
+            expect(document.execCommand.mock.calls.length).to.equal(0);
+        });
+
+        it('lists the sequence in the help overlay', () => {
+            window.VimkitInjected.enterNormalMode();
+            press('?', { shiftKey: true });
+            const help = document.querySelector('[data-vimkit-overlay="help"]');
+            expect(help.shadowRoot.textContent).to.contain('jj');
+            expect(help.shadowRoot.textContent).to.contain('Leave insert mode');
+        });
+    });
 });
 
 describe('scrolling a nested element', () => {
