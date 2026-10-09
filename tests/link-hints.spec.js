@@ -157,6 +157,19 @@ describe("link hint generation and classification", () => {
         expect(clipboardController.copy).toHaveBeenCalledWith("https://example.com/legacy", "Link URL");
     });
 
+    it("insets a rounded corner by the radius CSS actually draws", () => {
+        const pill = linkHints.roundedCornerInset({ borderTopLeftRadius: "9999px" }, { width: 120, height: 40 });
+        expect(pill.x).toBeCloseTo(20 * (1 - Math.SQRT1_2));
+        expect(pill.y).toBeCloseTo(20 * (1 - Math.SQRT1_2));
+
+        const ellipse = linkHints.roundedCornerInset({ borderTopLeftRadius: "50%" }, { width: 100, height: 40 });
+        expect(ellipse.x).toBeCloseTo(50 * (1 - Math.SQRT1_2));
+        expect(ellipse.y).toBeCloseTo(20 * (1 - Math.SQRT1_2));
+
+        expect(linkHints.roundedCornerInset({ borderTopLeftRadius: "0px" }, { width: 50, height: 20 }))
+            .toEqual({ x: 0, y: 0 });
+    });
+
     describe("filterLinkHints", () => {
         // Each link gets its own row so the occlusion check (elementFromPoint at
         // the rect's corner) resolves to the link being tested.

@@ -280,18 +280,38 @@ function isVisible(element, clientRect) {
                                  // so we heuristically choose 2, which seems to work well. 
                                  // We know a value of 2 is still safe (lies within the element) because, 
                                  // from the code above, widht & height are >= 3.
-      radius = parseFloat(computedStyle.borderTopLeftRadius), 
-      roundedBorderOffset = Math.ceil(radius * (1 - Math.sin(Math.PI / 4))), 
-      offset = Math.max(coordTruncationOffset, roundedBorderOffset);
-  if (offset >= clientRect.width || offset >= clientRect.height) 
+      corner = roundedCornerInset(computedStyle, clientRect),
+      offsetX = Math.max(coordTruncationOffset, Math.ceil(corner.x)),
+      offsetY = Math.max(coordTruncationOffset, Math.ceil(corner.y));
+  if (offsetX >= clientRect.width || offsetY >= clientRect.height)
     return false;
-  var el = document.elementFromPoint(clientRect.left + offset, clientRect.top + offset);
+  var el = document.elementFromPoint(clientRect.left + offsetX, clientRect.top + offsetY);
   while (el && el !== element)
     el = el.parentNode;
   if (!el)
     return false;
 
   return true;
+}
+
+/*
+ * How far the visible top-left corner of a rounded element sits inside its
+ * bounding box: the point at 45 degrees on the corner arc. The computed radius
+ * is what was written, not what is drawn — CSS shrinks radii that do not fit,
+ * so a 9999px pill's corner is really half its height — and a percentage is a
+ * share of each axis.
+ */
+function roundedCornerInset(computedStyle, rect) {
+  var parts = String(computedStyle.borderTopLeftRadius || "0").split(" ");
+  var resolve = function (value, size) {
+    var number = parseFloat(value) || 0;
+    return /%$/.test(value) ? number * size / 100 : number;
+  };
+  var x = resolve(parts[0], rect.width);
+  var y = resolve(parts[1] || parts[0], rect.height);
+  // Assumes the opposite corners share this radius, which holds for pills and circles.
+  var scale = Math.min(1, x > 0 ? rect.width / (2 * x) : 1, y > 0 ? rect.height / (2 * y) : 1);
+  return { x: x * scale * (1 - Math.SQRT1_2), y: y * scale * (1 - Math.SQRT1_2) };
 }
 
 function onKeyDownInLinkHintsMode(event) {
@@ -574,8 +594,10 @@ function createMarkerFor(link, hintString) {
   // The coordinates given by the window do not have the zoom factor included since the zoom is set only on
   // the document node.
   var zoomFactor = currentZoomLevel / 100.0;
-  marker.style.left = clientRect.left + window.scrollX / zoomFactor + "px";
-  marker.style.top = clientRect.top  + window.scrollY / zoomFactor + "px";
+  // Start on the visible edge, not the bounding box corner a rounded element leaves empty.
+  var corner = roundedCornerInset(window.getComputedStyle(link.element), clientRect);
+  marker.style.left = clientRect.left + corner.x + window.scrollX / zoomFactor + "px";
+  marker.style.top = clientRect.top + corner.y + window.scrollY / zoomFactor + "px";
 
   marker.clickableItem = link.element;
   return marker;
@@ -595,6 +617,7 @@ if (typeof module !== "undefined") {
     hintFilterText: hintFilterText,
     linkHintCopyValue: linkHintCopyValue,
     onKeyDownInLinkHintsMode: onKeyDownInLinkHintsMode,
+    roundedCornerInset: roundedCornerInset,
     updateLinkHints: updateLinkHints
   };
   global.LinkHintMode = LinkHintMode;
