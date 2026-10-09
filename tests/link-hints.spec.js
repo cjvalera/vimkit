@@ -50,6 +50,20 @@ describe("link hint actions", () => {
         expect(event.preventDefault).toHaveBeenCalled();
     });
 
+    it("clicks a hinted button in place instead of asking for a background tab", () => {
+        const button = document.createElement("button");
+        button.textContent = "Menu";
+        button.getClientRects = () => [{ top: 12, left: 12, width: 80, height: 20 }];
+        button.click = jest.fn();
+        document.body.appendChild(button);
+        document.elementFromPoint = jest.fn(() => button);
+        linkHints.activateLinkHintsModeWithQueue();
+        pressHintKey(defaults.linkHintCharacters[0]);
+
+        expect(button.click).toHaveBeenCalled();
+        expect(extensionCommunicator.requestOpenLinkInBackground).not.toHaveBeenCalled();
+    });
+
     it("copies a hinted URL and exits hint mode", () => {
         addVisibleLink("https://example.com/copied");
         linkHints.activateLinkHintsModeToCopyUrl();

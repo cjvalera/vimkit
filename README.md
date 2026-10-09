@@ -130,7 +130,7 @@ These bindings are the ones set by default, however you are able to change them 
 #### In-page navigation
     f       Toggle links
     F       Toggle links (open link in new tab)
-    ⌥f      Toggle links (keep open for multiple background tabs)
+    ⌥f      Toggle links and keep them up (links open in background tabs)
     yf      Copy a hinted link URL
     yF      Copy a hinted link's text
     ym      Copy a hinted link as a Markdown link
@@ -150,6 +150,11 @@ These bindings are the ones set by default, however you are able to change them 
     gu      Go up one URL level
     gU      Go to the site's root
     ?       Show Vimkit help
+
+<kbd>⌥f</kbd> stays in hint mode until <kbd>Esc</kbd>. Links open in background
+tabs, and buttons and menu items are clicked in place, after which the page is
+hinted again — so you can open a menu and pick from it without leaving. With
+<kbd>F</kbd>, a hinted button is clicked rather than ignored.
 
 Scroll commands act on whatever is actually scrolling. Vimkit walks up from the
 focused element — or from the element in the middle of the viewport — to the

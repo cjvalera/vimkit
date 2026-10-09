@@ -481,7 +481,14 @@ function activateHintMarker(marker) {
     // we want to give the user some feedback depicting which link they've selected by focusing it.
     if (linkHintMode === LinkHintMode.openQueue) {
       simulateClick(matchedLink, true);
-      resetLinkHintsMode();
+      if (matchedLink.href) {
+        resetLinkHintsMode();
+      } else {
+        // A button or menu item was clicked in place. Hint again once the page
+        // has re-rendered, so an opened menu can be walked without leaving.
+        deactivateLinkHintsMode();
+        requestAnimationFrame(activateLinkHintsModeWithQueue);
+      }
     } else if (linkHintMode === LinkHintMode.openNewTab) {
       simulateClick(matchedLink, true);
       matchedLink.focus();
@@ -578,7 +585,8 @@ function generateHintStrings(count, characters) {
 }
 
 function simulateClick(link, openInNewTab) {
-  if (openInNewTab) {
+  // Only something with a URL can open in a tab; anything else is clicked where it is.
+  if (openInNewTab && link.href) {
     extensionCommunicator.requestOpenLinkInBackground(link.href);
   } else {
     link.click();
