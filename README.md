@@ -68,6 +68,24 @@ Keys are written in binding syntax, the same as the `bindings` object — so
 out of the <kbd>?</kbd> help overlay on that site, and is handed to the page
 even when `transparentBindings` is off.
 
+**Per-site settings** - `sites` overrides any other setting on matching sites:
+a bigger `scrollSize` for long reads, different bindings inside a web app,
+`detectByCursorStyle` only where a site needs it.
+
+```json
+"sites": [
+  { "pattern": "google.com", "settings": { "scrollSize": 300 } },
+  { "pattern": "mail.google.com", "settings": { "bindings": { "scrollDown": "n" } } }
+]
+```
+
+Patterns match the same way as **Excluded URLs**. Every rule that matches
+applies, in order, so where two rules set the same key the later one wins — put
+broad patterns first and specific ones after them. Bindings merge per action, so
+a site only lists the shortcuts it changes. Overrides are checked by the same
+rules as the global settings, and take effect when a page loads. Use
+`excludedKeys` to give a shortcut up on a site entirely.
+
 **Link Hint Characters** - Allowed characters to be used when generating
 link shortcuts.
 

@@ -88,6 +88,34 @@ var VimkitSettings = (function () {
             });
         }
 
+        if (Object.prototype.hasOwnProperty.call(candidate, "sites") && !Array.isArray(candidate.sites)) {
+            errors.push("sites must be an array.");
+        } else if (Array.isArray(value.sites)) {
+            value.sites.forEach(function (site, index) {
+                var where = `sites[${index}]`;
+                if (!isPlainObject(site)) {
+                    errors.push(`${where} must be a JSON object.`);
+                    return;
+                }
+                if (typeof site.pattern !== "string" || !site.pattern.trim()) {
+                    errors.push(`${where}.pattern must be a non-empty string.`);
+                }
+                if (!isPlainObject(site.settings)) {
+                    errors.push(`${where}.settings must be a JSON object.`);
+                    return;
+                }
+                Object.keys(site.settings).forEach(function (key) {
+                    if (key === "sites" || !Object.prototype.hasOwnProperty.call(defaults, key)) {
+                        errors.push(`${where}.settings.${key} is not a setting a site can override.`);
+                    }
+                });
+                // A site's overrides follow the same type rules as the globals.
+                validate(site.settings, defaults).errors.forEach(function (error) {
+                    errors.push(`${where}.settings: ${error}`);
+                });
+            });
+        }
+
         if (isPlainObject(value.bindings)) {
             Object.keys(value.bindings).forEach(function (action) {
                 var binding = value.bindings[action];

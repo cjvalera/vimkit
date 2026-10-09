@@ -1,6 +1,7 @@
 {
   "excludedUrls": "",
   "excludedKeys": [],
+  "sites": [],
   "linkHintCharacters": "asdfjklqwerzxc",
   "filterLinkHints": false,
   "hintFontSize": 11,

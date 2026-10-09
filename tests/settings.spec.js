@@ -58,6 +58,28 @@ describe("Vimkit settings", () => {
         ]);
     });
 
+    it("validates site overrides with the same rules as the globals", () => {
+        expect(VimkitSettings.validate({
+            sites: [{ pattern: "github.com", settings: { scrollSize: 300, bindings: { scrollDown: "n" } } }]
+        }, defaults).valid).toBe(true);
+
+        const result = VimkitSettings.validate({
+            sites: [
+                { pattern: "", settings: { scrollSize: -1 } },
+                { pattern: "x.com", settings: { scrolSize: 1, sites: [] } },
+                "github.com"
+            ]
+        }, defaults);
+        expect(result.errors).toEqual([
+            "sites[0].pattern must be a non-empty string.",
+            "sites[0].settings: scrollSize must be a non-negative number.",
+            "sites[1].settings.scrolSize is not a setting a site can override.",
+            "sites[1].settings.sites is not a setting a site can override.",
+            "sites[2] must be a JSON object."
+        ]);
+        expect(VimkitSettings.validate({ sites: {} }, defaults).errors).toContain("sites must be an array.");
+    });
+
     it("rejects a non-object bindings value", () => {
         const result = VimkitSettings.validate({ bindings: [] }, defaults);
 

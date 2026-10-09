@@ -383,7 +383,7 @@ function addCssToPage() {}
 function isEmbed(element) { return ["EMBED", "OBJECT"].indexOf(element.tagName) >= 0; }
 
 function setSettings(message) {
-    settings = message;
+    settings = settingsForUrl(message, document.URL);
     // In the browser `var settings` is already the global the vendored sVim
     // scroller reads; under Jest each file is its own module, so publish it.
     window.settings = settings;
@@ -441,6 +441,16 @@ function excludedKeysFor(nextSettings, currentUrl) {
     return excluded;
 }
 
+// Every site rule that matches applies, in order, over the global settings, so
+// a later rule wins where two set the same key — put specific sites last.
+function settingsForUrl(nextSettings, currentUrl) {
+    var sites = nextSettings && Array.isArray(nextSettings.sites) ? nextSettings.sites : [];
+    return sites.reduce(function (effective, site) {
+        if (!site || !urlMatchesPattern(site.pattern, currentUrl)) return effective;
+        return VimkitSettings.merge(effective, site.settings);
+    }, nextSettings);
+}
+
 function stripProtocolAndWww(url) {
     url = url.replace("http://", "").replace("https://", "");
     return url.startsWith("www.") ? url.slice(4) : url;
@@ -460,6 +470,7 @@ if (!inIframe()) {
 
 window.isExcludedUrl = isExcludedUrl;
 window.excludedKeysFor = excludedKeysFor;
+window.settingsForUrl = settingsForUrl;
 window.stripProtocolAndWww = stripProtocolAndWww;
 window.VimkitInjected = {
     actionMap: actionMap,

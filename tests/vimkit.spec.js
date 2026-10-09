@@ -461,3 +461,55 @@ describe('excludedKeys', () => {
         window.VimkitInjected.setSettings(JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings)));
     });
 });
+
+describe('per-site settings', () => {
+    const settingsForUrl = window.settingsForUrl;
+
+    function settingsWith(sites) {
+        const settings = JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings));
+        settings.sites = sites;
+        return settings;
+    }
+
+    afterEach(() => {
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(JSON.parse(JSON.stringify(__vimkitMocks.defaultSettings)));
+        jest.restoreAllMocks();
+    });
+
+    it('applies every matching rule in order, later rules winning', () => {
+        const effective = settingsForUrl(settingsWith([
+            { pattern: 'google.com', settings: { scrollSize: 300, smoothScroll: false } },
+            { pattern: 'mail.google.com', settings: { scrollSize: 80 } },
+            { pattern: 'github.com', settings: { scrollSize: 999 } }
+        ]), 'https://mail.google.com/mail/u/0/');
+        expect(effective.scrollSize).to.equal(80);
+        expect(effective.smoothScroll).to.be(false);
+        expect(effective.linkHintCharacters).to.equal(__vimkitMocks.defaultSettings.linkHintCharacters);
+    });
+
+    it('merges bindings per action rather than replacing them all', () => {
+        const effective = settingsForUrl(settingsWith([
+            { pattern: 'example.com', settings: { bindings: { scrollDown: 'n' } } }
+        ]), 'https://example.com/');
+        expect(effective.bindings.scrollDown).to.equal('n');
+        expect(effective.bindings.scrollUp).to.equal('k');
+    });
+
+    it('leaves the globals alone on a site no rule matches', () => {
+        const settings = settingsWith([{ pattern: 'example.com', settings: { scrollSize: 1 } }]);
+        expect(settingsForUrl(settings, 'https://other.test/')).to.be(settings);
+    });
+
+    it('rebinds the page with the overrides for its URL', () => {
+        window.VimkitInjected.enterNormalMode();
+        window.VimkitInjected.setSettings(settingsWith([
+            { pattern: 'localhost', settings: { scrollSize: 400, bindings: { scrollDown: 'z' } } }
+        ]));
+        expect(window.settings.scrollSize).to.equal(400);
+        const scrollDown = jest.spyOn(window.VimkitInjected.actionMap, 'scrollDown').mockImplementation(() => {});
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', bubbles: true }));
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }));
+        expect(scrollDown.mock.calls.length).to.equal(1);
+    });
+});
