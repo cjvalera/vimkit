@@ -109,7 +109,9 @@ behaviours have to be checked in Safari or Orion before a release:
 - **Keyboard layouts and IMEs** — the unit tests feed synthetic events, so
   check the real thing once per release: with AZERTY and Dvorak, `j`/`k` and
   `f` hints follow the key labels; with Russian, `j` does nothing unless bound
-  to `о`.
+  to `о`; with the Japanese IME composing in a text field, `Esc` cancels the
+  conversion without leaving the field and `Enter` confirms it without moving
+  the find bar. Safari's composition key order has changed between releases.
 
 ## Contributing
 

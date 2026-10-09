@@ -23,9 +23,11 @@ and link to that project's issue tracker; they are kept here for history.
   makes `[[` unreachable. `ESC` is unaffected.
 * Insert mode is a normal binding (`enterInsertMode`), so `i` can be rebound
   and appears in the shortcut overlay.
-* Shift is recognised on letters in any script, and the layout contract —
-  bindings follow the typed character, Option shortcuts the key position — is
-  documented.
+* Keys that belong to an IME composition no longer reach Vimkit, so `Esc` that
+  cancels a Japanese or Chinese conversion stays in the field and `Enter` that
+  confirms one does not move the find bar. Shift is recognised on letters in any
+  script, and the layout contract — bindings follow the typed character, Option
+  shortcuts the key position — is documented.
 * Typing `jj` quickly leaves insert mode or a focused text field, like `ESC`,
   and removes the `j` it had already typed. Configurable as `exitInsertMode`.
 * Add page find, URL and link copying, multi-link hints, URL-level navigation,

@@ -120,7 +120,9 @@ non-Latin layout such as Russian, either switch to a Latin layout or write
 bindings and `linkHintCharacters` in your own script (`"scrollDown": ["j",
 "о"]`). The one exception is Option (`alt`) shortcuts: macOS turns Option-F
 into ƒ, so Vimkit reads the key's position instead, and an Option shortcut sits
-where its letter is on a US keyboard.
+where its letter is on a US keyboard. While an input method (Japanese, Chinese,
+Korean…) is composing, every key — `Esc` and `Enter` included — goes to the
+input method.
 
 Bindings can be multi-key sequences. Sequences time out after one second and
 can be cancelled with <kbd>Esc</kbd>. Counts from 1–999 work with scrolling,

@@ -50,6 +50,11 @@ var VimkitCommandDispatcher = (function () {
     // Bindings follow the character a key types (event.key), not its position,
     // so they move with the layout: on AZERTY "a" is the key labelled A.
     function eventToToken(event) {
+        // A key that belongs to an input method composition (Japanese, Chinese,
+        // Korean...) is the IME's, Escape and Enter included. Safari can deliver
+        // the composition-ending keydown after compositionend, with only the
+        // 229 keyCode left to identify it.
+        if (event.isComposing || event.keyCode === 229) return "";
         var key = normalizeKeyName(event.key);
         // macOS Option combinations can report a composed character (for
         // example Option-F as ƒ). Recover the binding key from code so

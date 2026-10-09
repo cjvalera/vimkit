@@ -134,6 +134,17 @@ describe('command mode integration', () => {
         expect(action.mock.calls.length).to.equal(0);
     });
 
+    it('leaves a field alone when Escape only cancels an IME composition', () => {
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        input.focus();
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 229, bubbles: true }));
+        expect(document.activeElement).to.be(input);
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        expect(document.activeElement).not.to.be(input);
+        input.remove();
+    });
+
     it('disables commands in insert mode until Escape returns to normal mode', () => {
         const action = jest.spyOn(window.VimkitInjected.actionMap, 'scrollDown').mockImplementation(() => {});
         document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'i', bubbles: true }));

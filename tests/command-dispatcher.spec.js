@@ -280,4 +280,10 @@ describe("keyboard layouts", () => {
         expect(called).toHaveBeenCalledTimes(1);
     });
 
+    it("ignores keys that belong to an IME composition", () => {
+        expect(eventToToken({ key: "k", isComposing: true })).toBe("");
+        // Safari can deliver the composition-ending key after compositionend.
+        expect(eventToToken({ key: "Escape", keyCode: 229, isComposing: false })).toBe("");
+        expect(eventToToken({ key: "Enter", keyCode: 229 })).toBe("");
+    });
 });

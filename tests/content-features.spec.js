@@ -89,6 +89,19 @@ describe("content features", () => {
         expect(find.isOpen()).toBe(false);
     });
 
+    it("leaves Enter and Escape to an IME composing in the find field", () => {
+        document.body.innerHTML = "<p>日本 日本</p>";
+        makeVisible(document.querySelector("p"));
+        const find = new FindMode(document, window, new OverlayManager(document, window));
+        find.open();
+        find.update("日本");
+        find.input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true }));
+        expect(find.index).toBe(0);
+        find.input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", keyCode: 229, bubbles: true }));
+        expect(find.isOpen()).toBe(true);
+        find.close();
+    });
+
     it("uses the async clipboard and then the textarea fallback", async () => {
         const overlays = { showStatus: jest.fn() };
         const navigatorObject = { clipboard: { writeText: jest.fn().mockResolvedValue() } };

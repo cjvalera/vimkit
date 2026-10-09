@@ -186,6 +186,11 @@ var VimkitContentFeatures = (function () {
         return null;
     }
 
+    // Keys that belong to an input method composition; see eventToToken.
+    function isImeKey(event) {
+        return event.isComposing || event.keyCode === 229;
+    }
+
     function OverlayManager(documentObject, windowObject) {
         this.document = documentObject;
         this.window = windowObject;
@@ -295,6 +300,7 @@ var VimkitContentFeatures = (function () {
             self.move(event.shiftKey ? -1 : 1);
         });
         this.input.addEventListener("keydown", function (event) {
+            if (isImeKey(event)) return;
             if (event.key === "Escape") {
                 event.preventDefault();
                 event.stopPropagation();
@@ -507,6 +513,7 @@ var VimkitContentFeatures = (function () {
             render();
         });
         input.addEventListener("keydown", function (event) {
+            if (isImeKey(event)) return;
             if (event.key === "Escape") {
                 event.preventDefault(); self.close();
             } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
