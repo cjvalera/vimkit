@@ -64,6 +64,28 @@ describe("link hint actions", () => {
         expect(extensionCommunicator.requestOpenLinkInBackground).not.toHaveBeenCalled();
     });
 
+    it("offers a hinted select's options and announces the choice", () => {
+        document.body.innerHTML = '<select><option>Apple</option><option disabled>Banana</option><option selected>Cherry</option></select>';
+        const select = document.querySelector("select");
+        select.getClientRects = () => [{ top: 12, left: 12, width: 80, height: 20 }];
+        document.elementFromPoint = jest.fn(() => select);
+        const events = [];
+        select.addEventListener("input", () => events.push("input"));
+        select.addEventListener("change", () => events.push("change"));
+        global.tabPicker = { open: jest.fn() };
+
+        linkHints.activateLinkHintsMode(linkHints.LinkHintMode.open);
+        pressHintKey(defaults.linkHintCharacters[0]);
+
+        const [items, onSelect, options] = tabPicker.open.mock.calls[0];
+        expect(items.map(item => item.title)).toEqual(["Apple", "Cherry"]);
+        expect(options.selected).toBe(1);
+        expect(document.querySelector("#vimiumHintMarkerContainer")).toBeNull();
+        onSelect(items[0]);
+        expect(select.value).toBe("Apple");
+        expect(events).toEqual(["input", "change"]);
+    });
+
     it("copies a hinted URL and exits hint mode", () => {
         addVisibleLink("https://example.com/copied");
         linkHints.activateLinkHintsModeToCopyUrl();

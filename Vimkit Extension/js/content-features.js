@@ -464,7 +464,9 @@ var VimkitContentFeatures = (function () {
         this.host = null;
     }
 
-    TabPicker.prototype.open = function (tabs, onSelect) {
+    // Also lists a <select>'s options, so the labels and starting row are options.
+    TabPicker.prototype.open = function (tabs, onSelect, options) {
+        options = options || {};
         this.close();
         var overlay = createHost(this.document, "tabs");
         this.host = overlay.host;
@@ -475,11 +477,15 @@ var VimkitContentFeatures = (function () {
             .picker{width:min(760px,92vw);padding:12px}input{width:100%;font-size:15px}.results{list-style:none;margin:8px 0 0;padding:0;max-height:55vh;overflow:auto}
             button.tab{background:transparent;color:inherit;border:0;border-radius:5px;display:block;padding:8px;text-align:left;width:100%;cursor:pointer}
             button.tab[aria-selected="true"]{background:Highlight;color:HighlightText}.title,.url{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.url{font-size:11px;opacity:.72;margin-top:2px}
-        </style><div class="backdrop"><section class="panel picker" role="dialog" aria-modal="true" aria-label="Search tabs"><input type="search" placeholder="Search tabs by title or URL" aria-label="Search tabs"><ul class="results" role="listbox"></ul></section></div>`;
+        </style><div class="backdrop"><section class="panel picker" role="dialog" aria-modal="true"><input type="search"><ul class="results" role="listbox"></ul></section></div>`;
         var input = overlay.root.querySelector("input");
         var list = overlay.root.querySelector(".results");
+        var label = options.label || "Search tabs";
+        overlay.root.querySelector("section").setAttribute("aria-label", label);
+        input.setAttribute("aria-label", label);
+        input.placeholder = options.placeholder || "Search tabs by title or URL";
         var filtered = tabs.slice();
-        var selected = 0;
+        var selected = options.selected || 0;
         var self = this;
 
         function render() {

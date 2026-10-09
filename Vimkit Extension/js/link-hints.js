@@ -469,6 +469,9 @@ function activateHintMarker(marker) {
     // When focusing a textbox, put the selection caret at the end of the textbox's contents.
     matchedLink.setSelectionRange(matchedLink.value.length, matchedLink.value.length);
     deactivateLinkHintsMode();
+  } else if (matchedLink.tagName === "SELECT" && !matchedLink.multiple) {
+    deactivateLinkHintsMode();
+    chooseSelectOption(matchedLink);
   } else {
     var copyValue = linkHintCopyValue(matchedLink, linkHintMode);
     if (copyValue) {
@@ -499,6 +502,22 @@ function activateHintMarker(marker) {
       deactivateLinkHintsMode();
     }
   }
+}
+
+/*
+ * A native <select> dropdown is browser chrome that hints cannot reach, so its
+ * options are offered in Vimkit's own picker. The change is announced with the
+ * events a user's choice fires, so the site's scripts react to it.
+ */
+function chooseSelectOption(select) {
+  var items = Array.prototype.filter.call(select.options, function (option) { return !option.disabled; })
+    .map(function (option) { return { title: option.text.trim() || "(blank)", option: option }; });
+  var current = items.findIndex(function (item) { return item.option.selected; });
+  tabPicker.open(items, function (item) {
+    select.selectedIndex = item.option.index;
+    select.dispatchEvent(new Event("input", { bubbles: true }));
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }, { label: "Choose an option", placeholder: "Filter options", selected: Math.max(0, current) });
 }
 
 function linkHintText(link) {

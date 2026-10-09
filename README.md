@@ -167,6 +167,12 @@ tabs, and buttons and menu items are clicked in place, after which the page is
 hinted again — so you can open a menu and pick from it without leaving. With
 <kbd>F</kbd>, a hinted button is clicked rather than ignored.
 
+Hinting a dropdown (`<select>`) lists its options in Vimkit's own picker, since
+the native menu is out of a web extension's reach: type to filter, move with
+<kbd>↑</kbd>/<kbd>↓</kbd>, choose with <kbd>Enter</kbd>, or leave it unchanged
+with <kbd>Esc</kbd>. The page sees the same `input` and `change` events a mouse
+choice fires. Multi-select lists are focused as before.
+
 Scroll commands act on whatever is actually scrolling. Vimkit walks up from the
 focused element — or from the element in the middle of the viewport — to the
 nearest ancestor that can still scroll in the requested direction, so

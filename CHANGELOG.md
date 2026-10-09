@@ -42,6 +42,8 @@ and link to that project's issue tracker; they are kept here for history.
   treated as hidden because its written radius exceeded the box; markers now sit
   on the rounded element's visible edge instead of its empty bounding-box corner.
   Markers on tightly packed controls slide apart rather than stacking.
+* Hinting a `<select>` opens a filterable list of its options and fires
+  `input`/`change` on the choice, so dropdowns no longer need the mouse.
 * `⌥f` clicks buttons and menu items in place and re-hints the page, so a menu
   can be opened and walked without leaving hint mode. `F` and `⌥f` previously
   did nothing on an element without a URL.

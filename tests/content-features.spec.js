@@ -156,6 +156,17 @@ describe("content features", () => {
         expect(picker.host).toBeNull();
     });
 
+    it("relabels the picker and starts on the given row", () => {
+        const picker = new TabPicker(document, new OverlayManager(document, window));
+        picker.open([{ title: "Small" }, { title: "Large" }], jest.fn(),
+            { label: "Choose an option", placeholder: "Filter options", selected: 1 });
+        const root = picker.host.shadowRoot;
+        expect(root.querySelector("input").placeholder).toBe("Filter options");
+        expect(root.querySelector("section").getAttribute("aria-label")).toBe("Choose an option");
+        expect(root.querySelectorAll('button.tab[aria-selected="true"]')[0].textContent).toBe("Large");
+        picker.close();
+    });
+
     it("reports a visible clipboard error when both paths fail", async () => {
         const overlays = { showStatus: jest.fn() };
         document.execCommand = jest.fn(() => false);
