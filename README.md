@@ -80,6 +80,12 @@ takes the first remaining link and is the way to pick `1` while `10` and `11`
 are still on screen. <kbd>Backspace</kbd> unwinds, <kbd>Esc</kbd> leaves. The
 numbers are the escape hatch for icons and images with no readable text.
 
+**Hint appearance** - `hintFontSize` (6–72, in pixels), `hintTextColor`,
+`hintBackgroundColor` and `hintBorderColor` restyle the hint markers, for
+larger or higher-contrast hints. Colours are hex values (`#000`, `#feda31`,
+`#00000080`); an empty colour keeps the default, and `hintBorderColor` is empty
+(no border) by default. Free-form CSS is deliberately not accepted.
+
 **Extra detection by cursor style** - Detect clickable links by looking
 for HTML elements having cursor style set to "pointer".
 

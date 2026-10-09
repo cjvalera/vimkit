@@ -42,6 +42,22 @@ describe("Vimkit settings", () => {
         expect(result.errors[1]).toContain("bindings.scrollDown");
     });
 
+    it("accepts hex hint colours and rejects anything that could carry CSS", () => {
+        expect(VimkitSettings.validate({
+            hintFontSize: 18, hintTextColor: "#fff", hintBackgroundColor: "#00000080", hintBorderColor: ""
+        }, defaults).valid).toBe(true);
+
+        const result = VimkitSettings.validate({
+            hintFontSize: 2, hintTextColor: "red; display: none", hintBackgroundColor: "url(x)"
+        }, defaults);
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            "hintFontSize must be a number from 6 to 72.",
+            "hintTextColor must be a hex colour such as #feda31, or empty.",
+            "hintBackgroundColor must be a hex colour such as #feda31, or empty."
+        ]);
+    });
+
     it("rejects a non-object bindings value", () => {
         const result = VimkitSettings.validate({ bindings: [] }, defaults);
 

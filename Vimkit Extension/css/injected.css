@@ -44,22 +44,24 @@ div.internalVimiumHintMarker {
   left: -1px;
   white-space: nowrap !important;
   overflow: hidden !important;
-  font-size: 11px !important;
+  /* The --vimkit-hint-* properties come from settings; the fallbacks are the defaults. */
+  font-size: var(--vimkit-hint-font-size, 11px) !important;
   padding: 2px 3px !important;
-  background-color: #feda31 !important;
+  background-color: var(--vimkit-hint-background, #feda31) !important;
   border: 0 !important;
   border-radius: 2px !important;
-  box-shadow: inset 0 -2px 0 #b39922 !important;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--vimkit-hint-background, #feda31) 70%, black),
+              0 0 0 1px var(--vimkit-hint-border, transparent) !important;
 }
 
 div.internalVimiumHintMarker span {
-  color: #4a400e;
+  color: var(--vimkit-hint-text, #4a400e);
   font-family: Helvetica, Arial, sans-serif;
   font-weight: bold;
 }
 
 div.internalVimiumHintMarker > .matchingCharacter {
-  color: #dcbc2a;
+  color: color-mix(in srgb, var(--vimkit-hint-text, #4a400e) 20%, var(--vimkit-hint-background, #feda31));
 }
 
 .vimiumHUD, .vimiumHUD * {

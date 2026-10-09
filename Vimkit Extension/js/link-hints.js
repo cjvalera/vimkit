@@ -125,6 +125,15 @@ function buildLinkHints() {
   hintMarkerContainingDiv = document.createElement("div");
   hintMarkerContainingDiv.id = "vimiumHintMarkerContainer";
   hintMarkerContainingDiv.className = "vimiumReset";
+  var hintStyle = {
+    "--vimkit-hint-font-size": settings.hintFontSize ? settings.hintFontSize + "px" : "",
+    "--vimkit-hint-text": settings.hintTextColor,
+    "--vimkit-hint-background": settings.hintBackgroundColor,
+    "--vimkit-hint-border": settings.hintBorderColor
+  };
+  Object.keys(hintStyle).forEach(function (name) {
+    if (hintStyle[name]) hintMarkerContainingDiv.style.setProperty(name, hintStyle[name]);
+  });
   for (var i = 0; i < hintMarkers.length; i++)
     hintMarkerContainingDiv.appendChild(hintMarkers[i]);
   document.body.appendChild(hintMarkerContainingDiv);

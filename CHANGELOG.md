@@ -35,6 +35,9 @@ and link to that project's issue tracker; they are kept here for history.
   treated as hidden because its written radius exceeded the box; markers now sit
   on the rounded element's visible edge instead of its empty bounding-box corner.
   Markers on tightly packed controls slide apart rather than stacking.
+* Add `hintFontSize`, `hintTextColor`, `hintBackgroundColor` and
+  `hintBorderColor` for larger or higher-contrast hint markers. Values are
+  validated hex colours and a bounded size, never raw CSS.
 * Generate shortest prefix-free link hints and add `yF`/`ym` to copy a link's
   text or a Markdown link.
 * Add `filterLinkHints`, an opt-in hint mode that selects a link by typing its

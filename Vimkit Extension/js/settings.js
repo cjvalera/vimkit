@@ -52,6 +52,18 @@ var VimkitSettings = (function () {
             }
         });
 
+        if (typeof value.hintFontSize !== "number" || !(value.hintFontSize >= 6 && value.hintFontSize <= 72)) {
+            errors.push("hintFontSize must be a number from 6 to 72.");
+        }
+
+        // These become CSS custom properties on every page, so they are typed
+        // values rather than free-form CSS.
+        ["hintTextColor", "hintBackgroundColor", "hintBorderColor"].forEach(function (key) {
+            if (typeof value[key] !== "string" || !/^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8}))?$/i.test(value[key])) {
+                errors.push(`${key} must be a hex colour such as #feda31, or empty.`);
+            }
+        });
+
         if (typeof value.linkHintCharacters === "string" && value.linkHintCharacters.length < 2) {
             errors.push("linkHintCharacters must contain at least two characters.");
         }
