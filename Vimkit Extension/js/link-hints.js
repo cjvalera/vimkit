@@ -128,6 +128,16 @@ function buildLinkHints() {
   for (var i = 0; i < hintMarkers.length; i++)
     hintMarkerContainingDiv.appendChild(hintMarkers[i]);
   document.body.appendChild(hintMarkerContainingDiv);
+  // Measure every marker before moving any, so the browser lays out once.
+  // offsetWidth rounds, which leaves sub-pixel overlaps.
+  var boxes = hintMarkers.map(function (marker) {
+    var size = marker.getBoundingClientRect();
+    return { left: parseFloat(marker.style.left), top: parseFloat(marker.style.top),
+             width: size.width, height: size.height };
+  });
+  separateMarkerBoxes(boxes).forEach(function (box, index) {
+    hintMarkers[index].style.left = box.left + "px";
+  });
   return true;
 }
 
@@ -312,6 +322,27 @@ function roundedCornerInset(computedStyle, rect) {
   // Assumes the opposite corners share this radius, which holds for pills and circles.
   var scale = Math.min(1, x > 0 ? rect.width / (2 * x) : 1, y > 0 ? rect.height / (2 * y) : 1);
   return { x: x * scale * (1 - Math.SQRT1_2), y: y * scale * (1 - Math.SQRT1_2) };
+}
+
+/*
+ * Tightly packed controls put their markers on top of each other. Each box, in
+ * hint order, slides right until it clears every box already placed, so each
+ * label stays readable and keeps its row. Boxes are { left, top, width, height }.
+ */
+function separateMarkerBoxes(boxes) {
+  var placed = [];
+  boxes.forEach(function (box) {
+    for (var i = 0; i < placed.length; i++) {
+      var other = placed[i];
+      if (box.left < other.left + other.width && other.left < box.left + box.width &&
+          box.top < other.top + other.height && other.top < box.top + box.height) {
+        box.left = other.left + other.width;
+        i = -1; // A move can create a new overlap with a box already checked.
+      }
+    }
+    placed.push(box);
+  });
+  return boxes;
 }
 
 function onKeyDownInLinkHintsMode(event) {
@@ -618,6 +649,7 @@ if (typeof module !== "undefined") {
     linkHintCopyValue: linkHintCopyValue,
     onKeyDownInLinkHintsMode: onKeyDownInLinkHintsMode,
     roundedCornerInset: roundedCornerInset,
+    separateMarkerBoxes: separateMarkerBoxes,
     updateLinkHints: updateLinkHints
   };
   global.LinkHintMode = LinkHintMode;

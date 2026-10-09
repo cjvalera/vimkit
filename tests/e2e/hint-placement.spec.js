@@ -7,9 +7,12 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>pills</title>
   body { margin: 40px; font: 16px system-ui }
   .pill { border: 0; border-radius: 9999px; padding: 0 24px; height: 48px; background: #ddd }
   .circle { border: 0; border-radius: 50%; width: 56px; height: 56px; background: #ddd }
+  .packed { display: flex; gap: 1px; margin-top: 20px }
+  .packed button { width: 8px; height: 8px; padding: 0; border: 0; background: #ddd }
 </style>
 <button class="pill" id="pill">Subscribe</button>
-<button class="circle" id="circle">+</button>`;
+<button class="circle" id="circle">+</button>
+<div class="packed"><button></button><button></button><button></button><button></button></div>`;
 
 const markerBoxes = page => page.evaluate(() =>
     Array.from(document.querySelectorAll("#vimiumHintMarkerContainer > div")).map(marker => {
@@ -48,5 +51,21 @@ test.describe("hint placement", () => {
         const button = await elementBox(page, "circle");
         expect(circle.left).toBeGreaterThanOrEqual(button.left + 8);
         expect(circle.top).toBeGreaterThanOrEqual(button.top + 8);
+    });
+
+    test("slides markers on tightly packed controls apart", async ({ vimkit }) => {
+        const { page } = vimkit;
+        await vimkit.open(PAGE);
+        await page.keyboard.press("f");
+        await settle(page, 400);
+
+        const boxes = await markerBoxes(page);
+        for (let i = 0; i < boxes.length; i++) {
+            for (let j = i + 1; j < boxes.length; j++) {
+                const a = boxes[i], b = boxes[j];
+                const overlap = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+                expect(overlap, `markers ${i} and ${j} overlap`).toBe(false);
+            }
+        }
     });
 });

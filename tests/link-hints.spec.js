@@ -170,6 +170,16 @@ describe("link hint generation and classification", () => {
             .toEqual({ x: 0, y: 0 });
     });
 
+    it("slides overlapping marker boxes apart along their row", () => {
+        const boxes = linkHints.separateMarkerBoxes([
+            { left: 0, top: 0, width: 14, height: 15 },
+            { left: 9, top: 0, width: 14, height: 15 },
+            { left: 18, top: 0, width: 14, height: 15 },
+            { left: 0, top: 40, width: 14, height: 15 }
+        ]);
+        expect(boxes.map(box => box.left)).toEqual([0, 14, 28, 0]);
+    });
+
     describe("filterLinkHints", () => {
         // Each link gets its own row so the occlusion check (elementFromPoint at
         // the rect's corner) resolves to the link being tested.
