@@ -225,6 +225,11 @@ Vimkit is built as a Safari Extension, this poses some limits on what is possibl
   internal page. Use <kbd>⌘</kbd><kbd>L</kbd> to leave those pages before using
   Vimkit commands.
 
+- **Local files** - Safari does not let extensions run on `file://` pages and
+  has no setting to allow it. To browse a local report or generated docs with
+  Vimkit, serve the folder instead, for example `python3 -m http.server` and
+  open `http://localhost:8000`.
+
 ## Privacy
 
 Vimkit collects nothing and makes no network requests of its own. Settings and
